@@ -4,6 +4,10 @@ Generic, simple, fast Differential Evolution for Rust.
 Currently this is my little learning project, to get to know rust.
 I try to crate a nice generic API interface, but first I just try to get it to work on a little example and set up everything correctly.
 
+# Similar Crates
+
+- [darwin-rs](https://github.com/willi-kappler/darwin-rs)
+- [RsGenetic](https://github.com/m-decoster/RsGenetic)
 
 ## License
 
