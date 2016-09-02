@@ -1,0 +1,6 @@
+[package]
+name = "differential-evolution"
+version = "0.1.0"
+authors = ["Martin Ankerl <martin.ankerl@gmail.com>"]
+
+[dependencies]
