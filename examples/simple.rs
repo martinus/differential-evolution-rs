@@ -3,7 +3,6 @@ extern crate differential_evolution;
 extern crate rand;
 
 use differential_evolution::{Settings, Population};
-use rand::thread_rng;
 
 fn square_fitness(pos: &Vec<f32>) -> f32 {
     let mut f = 0.0;
