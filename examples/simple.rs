@@ -36,5 +36,9 @@ fn main() {
     };
 
     // create population
-    let pop = Population::new(settings);
+    let mut pop = Population::new(settings);
+
+    for ind in &pop.curr {
+        println!("{:?}", ind.pos);
+    }
 }

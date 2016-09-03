@@ -22,17 +22,18 @@ pub struct Settings<R>
 
 #[derive(Clone)]
 pub struct Individual {
-    pos: Vec<f32>,
-    fitness: f32,
+    pub pos: Vec<f32>,
+    pub fitness: f32,
 }
 
 pub struct Population<R>
     where R: rand::Rng
 {
-    curr: Vec<Individual>,
-    best: Vec<Individual>,
+    pub curr: Vec<Individual>,
+    pub best: Vec<Individual>,
     settings: Settings<R>,
 }
+
 
 impl<R> Population<R>
     where R: rand::Rng
@@ -68,10 +69,6 @@ impl<R> Population<R>
             for ind in &mut pop.curr {
                 ind.pos[d] = between.ind_sample(&mut pop.settings.rng);
             }
-        }
-
-        for ind in &pop.curr {
-            println!("{:?}", ind.pos);
         }
 
         pop
