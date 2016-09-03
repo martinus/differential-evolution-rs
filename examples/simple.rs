@@ -1,7 +1,7 @@
 // Simple example how to use the API.
 extern crate differential_evolution;
 
-use differential_evolution::Settings;
+use differential_evolution::{Settings, Population};
 
 fn square_fitness(pos: &Vec<f32>) -> f32 {
     let mut f = 0.0;
@@ -33,9 +33,8 @@ fn main() {
         pop_size: 50,
     };
 
-    println!("min pos: {:?}", settings.min_pos);
-    println!("max pos: {:?}", settings.max_pos);
+    // create population
+    let pop = Population::new(settings);
 
-
-    println!("sf: {:?}", square_fitness(&settings.min_pos));
+    println!("pop: {:?}", pop);
 }
