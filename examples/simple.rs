@@ -38,7 +38,19 @@ fn main() {
     // create population
     let mut pop = Population::new(settings);
 
+    for iter in 0..1000 {
+        // evaluate individual
+        // TODO make pos immutable somehow?
+        for ind in &mut pop.curr {
+            ind.fitness = square_fitness(&ind.pos);
+        }
+
+        pop.evolve();
+    }
+
+    /*
     for ind in &pop.curr {
         println!("{:?}", ind.pos);
     }
+    */
 }
