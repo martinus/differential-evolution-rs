@@ -1,6 +1,8 @@
 extern crate rand;
 
-pub struct Settings<'a> {
+pub struct Settings<R>
+    where R: rand::Rng
+{
     pub min_pos: Vec<f32>,
     pub max_pos: Vec<f32>,
 
@@ -13,7 +15,7 @@ pub struct Settings<'a> {
     pub f_change_probability: f32,
 
     pub pop_size: usize,
-    pub rng: &'a mut rand::Rng,
+    pub rng: R,
 }
 
 #[derive(Clone)]
@@ -22,14 +24,18 @@ pub struct Individual {
     fitness: f32,
 }
 
-pub struct Population<'a> {
+pub struct Population<R>
+    where R: rand::Rng
+{
     pop_curr: Vec<Individual>,
     pop_best: Vec<Individual>,
-    settings: Settings<'a>,
+    settings: Settings<R>,
 }
 
-impl<'a> Population<'a> {
-    pub fn new(s: Settings) -> Population {
+impl<R> Population<R>
+    where R: rand::Rng
+{
+    pub fn new(s: Settings<R>) -> Population<R> {
 
         let empty_individual = Individual {
             pos: Vec::new(),

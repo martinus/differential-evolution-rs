@@ -33,7 +33,7 @@ fn main() {
         f_change_probability: 0.1,
 
         pop_size: 50,
-        rng: &mut rand::thread_rng(),
+        rng: rand::thread_rng(),
     };
 
     // create population
