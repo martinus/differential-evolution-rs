@@ -12,3 +12,4 @@ Differential evolution optimizer for rust.
 keywords = ["evolution", "optimization", "differential evolution", "DE"]
 
 [dependencies]
+rand = "0.3"

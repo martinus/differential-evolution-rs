@@ -1,7 +1,9 @@
 // Simple example how to use the API.
 extern crate differential_evolution;
+extern crate rand;
 
 use differential_evolution::{Settings, Population};
+use rand::thread_rng;
 
 fn square_fitness(pos: &Vec<f32>) -> f32 {
     let mut f = 0.0;
@@ -31,10 +33,9 @@ fn main() {
         f_change_probability: 0.1,
 
         pop_size: 50,
+        rng: &mut rand::thread_rng(),
     };
 
     // create population
     let pop = Population::new(settings);
-
-    println!("pop: {:?}", pop);
 }
