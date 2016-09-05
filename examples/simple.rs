@@ -7,7 +7,7 @@ use differential_evolution::{Settings, Population};
 fn square_fitness(pos: &Vec<f32>) -> f32 {
     let mut f = 0.0;
     for x in pos {
-        f += x * x;
+        f += x*x;
     }
     f
 }

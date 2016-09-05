@@ -1,6 +1,7 @@
 extern crate rand;
 
 use rand::distributions::{IndependentSample, Range};
+// use rand::distributions::range::SampleRange;
 
 pub struct Settings<R>
     where R: rand::Rng
@@ -53,7 +54,6 @@ pub struct Population<R>
     between_cr: Range<f32>,
     between_f: Range<f32>,
 }
-
 
 impl<R> Population<R>
     where R: rand::Rng
