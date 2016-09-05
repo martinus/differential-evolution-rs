@@ -27,11 +27,12 @@ pub struct Individual {
     pub cost: Option<f32>,
 }
 
-// struct ControlParameters {
-// cr: f32,
-// f: f32,
-// }
-//
+#[derive(Clone,Debug)]
+struct ControlParams {
+    cr: f32,
+    f: f32,
+}
+
 
 pub struct Population<R>
     where R: rand::Rng
@@ -40,12 +41,17 @@ pub struct Population<R>
     pub curr: Vec<Individual>,
 
     best: Vec<Individual>,
+
+    curr_control_params: Vec<ControlParams>,
+    best_control_params: Vec<ControlParams>,
     settings: Settings<R>,
     best_idx: Option<usize>,
     dim: usize,
     between_popsize: Range<usize>,
     between_01: Range<f32>,
     between_dim: Range<usize>,
+    between_cr: Range<f32>,
+    between_f: Range<f32>,
 }
 
 
@@ -65,20 +71,26 @@ impl<R> Population<R>
         let dim = s.min_pos.len();
 
         // Empty individual, with no cost value (yet)
-        let empty_individual = Individual {
+        let dummy_individual = Individual {
             pos: vec![0.0; dim],
             cost: None,
         };
 
+        let dummy_control_params = ControlParams { cr: 0.0, f: 0.0 };
+
         // creates all the empty individuals
         let mut pop = Population {
-            curr: vec![empty_individual.clone(); s.pop_size],
-            best: vec![empty_individual; s.pop_size],
+            curr: vec![dummy_individual.clone(); s.pop_size],
+            best: vec![dummy_individual; s.pop_size],
+            curr_control_params: vec![dummy_control_params.clone(); s.pop_size],
+            best_control_params: vec![dummy_control_params; s.pop_size],
             best_idx: None,
             dim: dim,
             between_popsize: Range::new(0, s.pop_size),
             between_01: Range::new(0.0, 1.0),
             between_dim: Range::new(0, dim),
+            between_cr: Range::new(s.cr_min, s.cr_max),
+            between_f: Range::new(s.f_min, s.f_max),
             settings: s,
         };
 
@@ -90,6 +102,12 @@ impl<R> Population<R>
             for ind in &mut pop.curr {
                 ind.pos[d] = between_min_max.ind_sample(&mut pop.settings.rng);
             }
+        }
+
+        // init control parameters
+        for cp in &mut pop.curr_control_params {
+            cp.cr = pop.between_cr.ind_sample(&mut pop.settings.rng);
+            cp.f = pop.between_f.ind_sample(&mut pop.settings.rng);
         }
 
         pop
@@ -109,11 +127,14 @@ impl<R> Population<R>
             if let Some(cost_best) = self.best[i].cost {
                 // if we already have a best, check if current is better.
                 if cost_curr <= cost_best {
+                    // TODO don't clone but swap?
                     self.best[i] = self.curr[i].clone();
+                    self.best_control_params[i] = self.curr_control_params[i].clone();
                 }
             } else {
                 // no best yet, overwrite with current
                 self.best[i] = self.curr[i].clone();
+                self.best_control_params[i] = self.curr_control_params[i].clone();
             }
 
             // min best cost index
@@ -140,19 +161,32 @@ impl<R> Population<R>
                 id2 = self.between_popsize.ind_sample(&mut self.settings.rng);
             }
 
+            // see "Self-Adapting Control Parameters in Differential Evolution:
+            // A Comparative Study on Numerical Benchmark Problems"
+            let mut cp = self.best_control_params[i].clone();
+            if self.between_01.ind_sample(&mut self.settings.rng) <
+               self.settings.cr_change_probability {
+                cp.cr = self.between_cr.ind_sample(&mut self.settings.rng);
+            }
+            if self.between_01.ind_sample(&mut self.settings.rng) <
+               self.settings.f_change_probability {
+                cp.f = self.between_f.ind_sample(&mut self.settings.rng);
+            }
+
             let forced_mutation_dim = self.between_dim.ind_sample(&mut self.settings.rng);
             for d in 0..self.dim {
                 if d == forced_mutation_dim ||
-                   self.between_01.ind_sample(&mut self.settings.rng) < self.settings.cr_max {
+                   self.between_01.ind_sample(&mut self.settings.rng) < cp.cr {
 
                     self.curr[i].pos[d] = self.best[best_idx].pos[d] +
-                                          self.settings.f_max *
-                                          (self.best[id1].pos[d] - self.best[id2].pos[d]);
+                                          cp.f * (self.best[id1].pos[d] - self.best[id2].pos[d]);
                 } else {
                     self.curr[i].pos[d] = self.best[i].pos[d];
                 }
             }
 
+            // assign the new control parameters
+            self.curr_control_params[i] = cp;
         }
     }
 

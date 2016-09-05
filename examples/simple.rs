@@ -24,11 +24,11 @@ fn main() {
         max_pos: vec![20.0; dim],
 
         cr_min: 0.0,
-        cr_max: 0.5,
+        cr_max: 1.0,
         cr_change_probability: 0.1,
 
         f_min: 0.1,
-        f_max: 0.5,
+        f_max: 1.0,
         f_change_probability: 0.1,
 
         pop_size: 50,
