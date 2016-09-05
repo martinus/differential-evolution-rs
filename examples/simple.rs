@@ -38,7 +38,7 @@ fn main() {
     // create population
     let mut pop = Population::new(settings);
 
-    for iter in 0..1000 {
+    for iter in 0..10000 {
         // evaluate individual
         // TODO make pos immutable somehow?
         for ind in &mut pop.curr {

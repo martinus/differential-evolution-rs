@@ -27,13 +27,25 @@ pub struct Individual {
     pub cost: Option<f32>,
 }
 
+// struct ControlParameters {
+// cr: f32,
+// f: f32,
+// }
+//
+
 pub struct Population<R>
     where R: rand::Rng
 {
+    // TODO use a single vector for curr and best and controlparameters?
     pub curr: Vec<Individual>,
-    pub best: Vec<Individual>,
+
+    best: Vec<Individual>,
     settings: Settings<R>,
     best_idx: Option<usize>,
+    dim: usize,
+    between_popsize: Range<usize>,
+    between_01: Range<f32>,
+    between_dim: Range<usize>,
 }
 
 
@@ -62,17 +74,21 @@ impl<R> Population<R>
         let mut pop = Population {
             curr: vec![empty_individual.clone(); s.pop_size],
             best: vec![empty_individual; s.pop_size],
-            settings: s,
             best_idx: None,
+            dim: dim,
+            between_popsize: Range::new(0, s.pop_size),
+            between_01: Range::new(0.0, 1.0),
+            between_dim: Range::new(0, dim),
+            settings: s,
         };
 
         // random range for each dimension
         for d in 0..dim {
-            let between = Range::new(pop.settings.min_pos[d], pop.settings.max_pos[d]);
+            let between_min_max = Range::new(pop.settings.min_pos[d], pop.settings.max_pos[d]);
 
             // initialize each individual's dimension
             for ind in &mut pop.curr {
-                ind.pos[d] = between.ind_sample(&mut pop.settings.rng);
+                ind.pos[d] = between_min_max.ind_sample(&mut pop.settings.rng);
             }
         }
 
@@ -112,7 +128,32 @@ impl<R> Population<R>
     }
 
     fn update_positions(&mut self) {
-        // TODO
+        let best_idx = self.best_idx.unwrap();
+        for i in 0..self.curr.len() {
+            let mut id1 = i;
+            while id1 == i {
+                id1 = self.between_popsize.ind_sample(&mut self.settings.rng);
+            }
+
+            let mut id2 = i;
+            while id2 == i || id2 == id1 {
+                id2 = self.between_popsize.ind_sample(&mut self.settings.rng);
+            }
+
+            let forced_mutation_dim = self.between_dim.ind_sample(&mut self.settings.rng);
+            for d in 0..self.dim {
+                if d == forced_mutation_dim ||
+                   self.between_01.ind_sample(&mut self.settings.rng) < self.settings.cr_max {
+
+                    self.curr[i].pos[d] = self.best[best_idx].pos[d] +
+                                          self.settings.f_max *
+                                          (self.best[id1].pos[d] - self.best[id2].pos[d]);
+                } else {
+                    self.curr[i].pos[d] = self.best[i].pos[d];
+                }
+            }
+
+        }
     }
 
     // Uses updated cost values to update positions of individuals.
