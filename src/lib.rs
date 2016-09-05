@@ -20,7 +20,7 @@ pub struct Settings<R>
     pub rng: R,
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Individual {
     pub pos: Vec<f32>,
     // the lower, the better.
@@ -158,12 +158,6 @@ impl<R> Population<R>
 
     // Uses updated cost values to update positions of individuals.
     pub fn evolve(&mut self) -> Option<&Individual> {
-        // check that all individuals have now an updated cost value
-        for ind in &self.curr {
-            assert!(ind.cost != None,
-                    "All cost values need to be update before calling evolve()");
-        }
-
         let found_new_best = self.update_best();
         self.update_positions();
 
