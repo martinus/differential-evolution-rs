@@ -23,7 +23,8 @@ pub struct Settings<R>
 #[derive(Clone)]
 pub struct Individual {
     pub pos: Vec<f32>,
-    pub fitness: f32,
+    // the lower, the better.
+    pub cost: Option<f32>,
 }
 
 pub struct Population<R>
@@ -32,12 +33,14 @@ pub struct Population<R>
     pub curr: Vec<Individual>,
     pub best: Vec<Individual>,
     settings: Settings<R>,
+    best_idx: Option<usize>,
 }
 
 
 impl<R> Population<R>
     where R: rand::Rng
 {
+    // Creates a new population based on the given settings.
     pub fn new(s: Settings<R>) -> Population<R> {
         assert_eq!(s.min_pos.len(),
                    s.max_pos.len(),
@@ -49,9 +52,10 @@ impl<R> Population<R>
         // create a vector of randomly initialized individuals for current.
         let dim = s.min_pos.len();
 
+        // Empty individual, with no cost value (yet)
         let empty_individual = Individual {
             pos: vec![0.0; dim],
-            fitness: 0.0,
+            cost: None,
         };
 
         // creates all the empty individuals
@@ -59,6 +63,7 @@ impl<R> Population<R>
             curr: vec![empty_individual.clone(); s.pop_size],
             best: vec![empty_individual; s.pop_size],
             settings: s,
+            best_idx: None,
         };
 
         // random range for each dimension
@@ -74,7 +79,57 @@ impl<R> Population<R>
         pop
     }
 
-    pub fn evolve(&mut self) {
-        println!("evolving...");
+    fn update_best(&mut self) -> bool {
+        let last_best_cost: Option<f32>;
+        if let Some(last_best_idx) = self.best_idx {
+            last_best_cost = self.best[last_best_idx].cost;
+        } else {
+            last_best_cost = None;
+        }
+
+        let mut new_best_idx = 0;
+        for i in 0..self.curr.len() {
+            let cost_curr = self.curr[i].cost.unwrap();
+            if let Some(cost_best) = self.best[i].cost {
+                // if we already have a best, check if current is better.
+                if cost_curr <= cost_best {
+                    self.best[i] = self.curr[i].clone();
+                }
+            } else {
+                // no best yet, overwrite with current
+                self.best[i] = self.curr[i].clone();
+            }
+
+            // min best cost index
+            if self.best[i].cost.unwrap() < self.best[new_best_idx].cost.unwrap() {
+                new_best_idx = i;
+            }
+        }
+        self.best_idx = Some(new_best_idx);
+
+        // got a new best?
+        last_best_cost.is_none() || self.best[new_best_idx].cost.unwrap() < last_best_cost.unwrap()
+    }
+
+    fn update_positions(&mut self) {
+        // TODO
+    }
+
+    // Uses updated cost values to update positions of individuals.
+    pub fn evolve(&mut self) -> Option<&Individual> {
+        // check that all individuals have now an updated cost value
+        for ind in &self.curr {
+            assert!(ind.cost != None,
+                    "All cost values need to be update before calling evolve()");
+        }
+
+        let found_new_best = self.update_best();
+        self.update_positions();
+
+        if found_new_best {
+            Some(&self.best[self.best_idx.unwrap()])
+        } else {
+            None
+        }
     }
 }

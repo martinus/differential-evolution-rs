@@ -42,10 +42,12 @@ fn main() {
         // evaluate individual
         // TODO make pos immutable somehow?
         for ind in &mut pop.curr {
-            ind.fitness = square_fitness(&ind.pos);
+            ind.cost = Some(square_fitness(&ind.pos));
         }
 
-        pop.evolve();
+        if let Some(best) = pop.evolve() {
+            println!("new best in iteration {}: cost={:?}, pos={:?}", iter, best.cost, best.pos)
+        }
     }
 
     /*
