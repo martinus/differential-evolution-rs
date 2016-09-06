@@ -21,7 +21,7 @@ fn main() {
 
     // create population
     let mut pop = Population::new(settings);
-
+    
     for iter in 0..10000 {
         // evaluate individual
         // TODO make pos immutable somehow?
@@ -30,13 +30,9 @@ fn main() {
         }
 
         if let Some(best) = pop.evolve() {
-            println!("new best in iteration {}: {:?}", iter, best)
+            println!("new best in iteration {}: {:?}", iter, best);
         }
     }
 
-    /*
-    for ind in &pop.curr {
-        println!("{:?}", ind.pos);
-    }
-    */
+    println!("best: {:?}", pop.best());
 }

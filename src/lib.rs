@@ -200,6 +200,8 @@ impl<R> Population<R>
             let best2_pos = &self.best[id2].pos;
 
             let forced_mutation_dim = self.between_dim.ind_sample(rng);
+
+            // This implements the DE/1/best/bin algorithm.
             for d in 0..self.dim {
                 if d == forced_mutation_dim || rng.gen::<f32>() < curr.cr {
                     curr_pos[d] = global_best_pos[d] + curr.f * (best1_pos[d] - best2_pos[d]);
@@ -213,16 +215,16 @@ impl<R> Population<R>
         }
     }
 
+    pub fn best(&self) -> Option<&Individual> {
+        Some(&self.best[self.best_idx.unwrap()])
+    }
+
     // Uses updated cost values to update positions of individuals.
     pub fn evolve(&mut self) -> Option<&Individual> {
         let found_new_best = self.update_best();
         self.update_positions();
 
-        if found_new_best {
-            Some(&self.best[self.best_idx.unwrap()])
-        } else {
-            None
-        }
+        if found_new_best { self.best() } else { None }
     }
 }
 
