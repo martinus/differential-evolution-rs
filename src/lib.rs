@@ -222,7 +222,11 @@ impl<R> Population<R>
     }
 
     pub fn best(&self) -> Option<&Individual> {
-        Some(&self.best[self.best_idx.unwrap()])
+        if self.best_idx.is_none() {
+            None
+        } else {
+            Some(&self.best[self.best_idx.unwrap()])
+        }
     }
 
     // Uses updated cost values to update positions of individuals.
@@ -231,6 +235,15 @@ impl<R> Population<R>
         self.update_positions();
 
         if found_new_best { self.best() } else { None }
+    }
+
+    pub fn iter<F>(&mut self, cost_function: F)
+        where F: Fn(&[f32]) -> f32
+    {
+
+        for ind in &mut self.curr {
+            ind.cost = Some(cost_function(&ind.pos));
+        }
     }
 }
 
