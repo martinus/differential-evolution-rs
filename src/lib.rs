@@ -231,7 +231,7 @@ mod tests {
     extern crate rand;
     use super::*;
     use test::Bencher;
-    use rand::{XorShiftRng, StdRng, IsaacRng, Isaac64Rng, Rng};
+    use rand::{XorShiftRng, StdRng, IsaacRng, Isaac64Rng, Rng, ChaChaRng};
     use rand::{OsRng, weak_rng};
 
 
@@ -283,6 +283,16 @@ mod tests {
     }
 
     #[bench]
+    fn rand_chacha(b: &mut Bencher) {
+        let rng: ChaChaRng = OsRng::new().unwrap().gen();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
+        });
+    }
+
+    #[bench]
     fn rand_isaac(b: &mut Bencher) {
         let rng: IsaacRng = OsRng::new().unwrap().gen();
         let mut pop = setup(5, rng);
@@ -305,6 +315,16 @@ mod tests {
     #[bench]
     fn rand_std(b: &mut Bencher) {
         let rng: StdRng = StdRng::new().unwrap();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
+        });
+    }
+
+    #[bench]
+    fn rand_osrng(b: &mut Bencher) {
+        let rng: OsRng = OsRng::new().unwrap();
         let mut pop = setup(5, rng);
         b.iter(|| {
             dummy_fitness(&mut pop.curr);
