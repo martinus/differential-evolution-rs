@@ -168,12 +168,12 @@ impl<R> Population<R>
         let global_best_pos = &self.best[self.best_idx.unwrap()].pos;
         let rng = &mut self.settings.rng;
         for i in 0..self.curr.len() {
-            let mut id1 = i;
+            let mut id1 = self.between_popsize.ind_sample(rng);
             while id1 == i {
                 id1 = self.between_popsize.ind_sample(rng);
             }
 
-            let mut id2 = i;
+            let mut id2 = self.between_popsize.ind_sample(rng);
             while id2 == i || id2 == id1 {
                 id2 = self.between_popsize.ind_sample(rng);
             }
