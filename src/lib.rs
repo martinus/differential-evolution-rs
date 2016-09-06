@@ -77,7 +77,6 @@ pub struct Population<R>
     best_idx: Option<usize>,
     dim: usize,
     between_popsize: Range<usize>,
-    between_01: Range<f32>,
     between_dim: Range<usize>,
     between_cr: Range<f32>,
     between_f: Range<f32>,
@@ -113,7 +112,6 @@ impl<R> Population<R>
             best_idx: None,
             dim: dim,
             between_popsize: Range::new(0, s.pop_size),
-            between_01: Range::new(0.0, 1.0),
             between_dim: Range::new(0, dim),
             between_cr: Range::new(s.cr_min, s.cr_max),
             between_f: Range::new(s.f_min, s.f_max),
@@ -167,7 +165,7 @@ impl<R> Population<R>
     }
 
     fn update_positions(&mut self) {
-        let best_idx = self.best_idx.unwrap();
+        let global_best_pos = &self.best[self.best_idx.unwrap()].pos;
         let rng = &mut self.settings.rng;
         for i in 0..self.curr.len() {
             let mut id1 = i;
@@ -185,23 +183,28 @@ impl<R> Population<R>
 
             // see "Self-Adapting Control Parameters in Differential Evolution:
             // A Comparative Study on Numerical Benchmark Problems"
-            curr.cr = best.cr;
-            curr.f = best.f;
-            if self.between_01.ind_sample(rng) < self.settings.cr_change_probability {
+            if rng.next_f32() < self.settings.cr_change_probability {
                 curr.cr = self.between_cr.ind_sample(rng);
+            } else {
+                curr.cr = best.cr;
             }
-            if self.between_01.ind_sample(rng) < self.settings.f_change_probability {
+            if rng.next_f32() < self.settings.f_change_probability {
                 curr.f = self.between_f.ind_sample(rng);
+            } else {
+                curr.f = best.f;
             }
+
+            let curr_pos = &mut curr.pos;
+            let best_pos = &best.pos;
+            let best1_pos = &self.best[id1].pos;
+            let best2_pos = &self.best[id2].pos;
 
             let forced_mutation_dim = self.between_dim.ind_sample(rng);
             for d in 0..self.dim {
-                if d == forced_mutation_dim || self.between_01.ind_sample(rng) < curr.cr {
-
-                    curr.pos[d] = self.best[best_idx].pos[d] +
-                                  curr.f * (self.best[id1].pos[d] - self.best[id2].pos[d]);
+                if d == forced_mutation_dim || rng.next_f32() < curr.cr {
+                    curr_pos[d] = global_best_pos[d] + curr.f * (best1_pos[d] - best2_pos[d]);
                 } else {
-                    curr.pos[d] = self.best[i].pos[d];
+                    curr_pos[d] = best_pos[d];
                 }
             }
 
@@ -227,7 +230,7 @@ impl<R> Population<R>
 mod tests {
     extern crate rand;
     use super::*;
-    use test::{black_box, Bencher};
+    use test::Bencher;
     use rand::{XorShiftRng, StdRng, IsaacRng, Isaac64Rng, Rng};
     use rand::{OsRng, weak_rng};
 
@@ -255,7 +258,7 @@ mod tests {
                 }
                 ind.cost = Some(f);
             }
-            black_box(pop.evolve());
+            pop.evolve();
         });
     }
 
@@ -265,7 +268,7 @@ mod tests {
         let mut pop = setup(5, rand::thread_rng());
         b.iter(|| {
             dummy_fitness(&mut pop.curr);
-            black_box(pop.evolve());
+            pop.evolve();
         });
     }
 
