@@ -1,10 +1,10 @@
 // Simple example how to use the API.
 extern crate differential_evolution;
-extern crate rand;
 
-use differential_evolution::{Settings, Population};
+use differential_evolution::Population;
 
-fn square_fitness(pos: &Vec<f32>) -> f32 {
+// function that we try to minimize
+fn sum_of_squares(pos: &[f32]) -> f32 {
     let mut f = 0.0;
     for x in pos {
         f += x*x;
@@ -13,20 +13,17 @@ fn square_fitness(pos: &Vec<f32>) -> f32 {
 }
 
 fn main() {
-    println!("Hello from differential evolution!");
-
     // problem dimension
-    let dim = 5;
-    let settings = Settings::new(vec![-20.0; dim], vec![20.0; dim]);
+    let dim = 10;
 
-    // create population
-    let mut pop = Population::new(settings);
+    // create population with default settings:
+    let mut pop = Population::new(vec![-100.0; dim], vec![100.0; dim]);
     
     for iter in 0..10000 {
         // evaluate individual
         // TODO make pos immutable somehow?
         for ind in &mut pop.curr {
-            ind.cost = Some(square_fitness(&ind.pos));
+            ind.cost = Some(sum_of_squares(&ind.pos));
         }
 
         if let Some(best) = pop.evolve() {

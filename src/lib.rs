@@ -82,11 +82,17 @@ pub struct Population<R>
     between_f: Range<f32>,
 }
 
+impl Population<rand::XorShiftRng> {
+    pub fn new(min_pos: Vec<f32>, max_pos: Vec<f32>) -> Population<rand::XorShiftRng> {
+        Population::from_settings(Settings::new(min_pos, max_pos))
+    }
+}
+
 impl<R> Population<R>
     where R: rand::Rng
 {
     // Creates a new population based on the given settings.
-    pub fn new(s: Settings<R>) -> Population<R> {
+    pub fn from_settings(s: Settings<R>) -> Population<R> {
         assert_eq!(s.min_pos.len(),
                    s.max_pos.len(),
                    "min_pos and max_pos need to have the same number of elements");
