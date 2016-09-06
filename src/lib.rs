@@ -1,10 +1,12 @@
+#![feature(test)]
+
 #![feature(plugin)]
 #![plugin(clippy)]
 
+extern crate test;
 extern crate rand;
 
 use rand::distributions::{IndependentSample, Range};
-// use rand::distributions::range::SampleRange;
 
 pub struct Settings<R>
     where R: rand::Rng
@@ -22,6 +24,35 @@ pub struct Settings<R>
 
     pub pop_size: usize,
     pub rng: R,
+}
+
+impl<R> Settings<R>
+    where R: rand::Rng
+{
+    pub fn min_max_rng(min_pos: Vec<f32>, max_pos: Vec<f32>, rng: R) -> Settings<R> {
+        // create settings for the algorithm
+        Settings {
+            min_pos: min_pos,
+            max_pos: max_pos,
+
+            cr_min: 0.0,
+            cr_max: 1.0,
+            cr_change_probability: 0.1,
+
+            f_min: 0.1,
+            f_max: 1.0,
+            f_change_probability: 0.1,
+
+            pop_size: 50,
+            rng: rng,
+        }
+    }
+}
+
+impl Settings<rand::XorShiftRng> {
+    pub fn new(min_pos: Vec<f32>, max_pos: Vec<f32>) -> Settings<rand::XorShiftRng> {
+        Settings::min_max_rng(min_pos, max_pos, rand::weak_rng())
+    }
 }
 
 #[derive(Clone,Debug)]
@@ -191,4 +222,80 @@ impl<R> Population<R>
             None
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    extern crate rand;
+    use super::*;
+    use test::{black_box, Bencher};
+    use rand::{XorShiftRng, StdRng, IsaacRng, Isaac64Rng, Rng};
+    use rand::{OsRng, weak_rng};
+
+
+    fn setup<R: rand::Rng>(dim: usize, rng: R) -> Population<R> {
+        let settings = Settings::min_max_rng(vec![-20.0; dim], vec![20.0; dim], rng);
+
+        let mut pop = Population::new(settings);
+        for ind in &mut pop.curr {
+            ind.cost = Some(1.234);
+        }
+
+        pop
+    }
+
+    #[bench]
+    fn rand_thread_rng(b: &mut Bencher) {
+        let mut pop = setup(5, rand::thread_rng());
+        b.iter(|| {
+            black_box(pop.evolve());
+        });
+    }
+
+    #[bench]
+    fn rand_xor_shift(b: &mut Bencher) {
+        let rng: XorShiftRng = OsRng::new().unwrap().gen();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            black_box(pop.evolve());
+        });
+    }
+
+    #[bench]
+    fn rand_isaac(b: &mut Bencher) {
+        let rng: IsaacRng = OsRng::new().unwrap().gen();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            black_box(pop.evolve());
+        });
+    }
+
+    #[bench]
+    fn rand_isaac64(b: &mut Bencher) {
+        let rng: Isaac64Rng = OsRng::new().unwrap().gen();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            black_box(pop.evolve());
+        });
+    }
+
+    #[bench]
+    fn rand_std(b: &mut Bencher) {
+        let rng: StdRng = StdRng::new().unwrap();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            black_box(pop.evolve());
+        });
+    }
+
+    #[bench]
+    fn rand_weak_rng(b: &mut Bencher) {
+        let rng = weak_rng();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            black_box(pop.evolve());
+        });
+    }
+
+
 }

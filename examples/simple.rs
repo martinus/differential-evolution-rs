@@ -17,23 +17,7 @@ fn main() {
 
     // problem dimension
     let dim = 5;
-
-    // create settings for the algorithm
-    let settings = Settings {
-        min_pos: vec![-20.0; dim],
-        max_pos: vec![20.0; dim],
-
-        cr_min: 0.0,
-        cr_max: 1.0,
-        cr_change_probability: 0.1,
-
-        f_min: 0.1,
-        f_max: 1.0,
-        f_change_probability: 0.1,
-
-        pop_size: 50,
-        rng: rand::thread_rng(),
-    };
+    let settings = Settings::new(vec![-20.0; dim], vec![20.0; dim]);
 
     // create population
     let mut pop = Population::new(settings);
