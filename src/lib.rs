@@ -143,31 +143,27 @@ impl<R> Population<R>
             last_best_cost = None;
         }
 
-        let mut new_best_idx = 0;
+        let mut new_best_cost = self.curr[0].cost.unwrap();
         for i in 0..self.curr.len() {
-            let cost_curr = self.curr[i].cost.unwrap();
-            if let Some(cost_best) = self.best[i].cost {
-                // if we already have a best, check if current is better.
-                if cost_curr <= cost_best {
-                    // swap is *much* faster than clone.
-                    std::mem::swap(&mut self.best[i], &mut self.curr[i]);
-                    // reset cost, so user is forced to update it.
-                    self.curr[i].cost = None;
-                }
-            } else {
-                // no best yet: swap current with best
-                std::mem::swap(&mut self.best[i], &mut self.curr[i]);
-            }
+            let curr = &mut self.curr[i];
+            let best = &mut self.best[i];
 
-            // min best cost index
-            if self.best[i].cost.unwrap() < self.best[new_best_idx].cost.unwrap() {
-                new_best_idx = i;
+            // we use <= here, so that the individual moves even if the cost
+            // stays the same.
+            if best.cost.is_none() || curr.cost.unwrap() <= best.cost.unwrap() {
+                // find global best. We use < here so that global only updates when fitness changes.
+                if curr.cost.unwrap() < new_best_cost {
+                    self.best_idx = Some(i);
+                    new_best_cost = curr.cost.unwrap();
+                }
+
+                // replace individual's best. swap is *much* faster than clone.
+                std::mem::swap(curr, best);
             }
         }
-        self.best_idx = Some(new_best_idx);
 
         // got a new best?
-        last_best_cost.is_none() || self.best[new_best_idx].cost.unwrap() < last_best_cost.unwrap()
+        last_best_cost.is_none() || new_best_cost < last_best_cost.unwrap()
     }
 
     fn update_positions(&mut self) {
@@ -208,6 +204,9 @@ impl<R> Population<R>
                     curr.pos[d] = self.best[i].pos[d];
                 }
             }
+
+            // reset cost, has to be updated by the user.
+            curr.cost = None;
         }
     }
 
