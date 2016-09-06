@@ -172,15 +172,16 @@ impl<R> Population<R>
 
     fn update_positions(&mut self) {
         let best_idx = self.best_idx.unwrap();
+        let rng = &mut self.settings.rng;
         for i in 0..self.curr.len() {
             let mut id1 = i;
             while id1 == i {
-                id1 = self.between_popsize.ind_sample(&mut self.settings.rng);
+                id1 = self.between_popsize.ind_sample(rng);
             }
 
             let mut id2 = i;
             while id2 == i || id2 == id1 {
-                id2 = self.between_popsize.ind_sample(&mut self.settings.rng);
+                id2 = self.between_popsize.ind_sample(rng);
             }
 
             let curr = &mut self.curr[i];
@@ -190,19 +191,16 @@ impl<R> Population<R>
             // A Comparative Study on Numerical Benchmark Problems"
             curr.cr = best.cr;
             curr.f = best.f;
-            if self.between_01.ind_sample(&mut self.settings.rng) <
-               self.settings.cr_change_probability {
-                curr.cr = self.between_cr.ind_sample(&mut self.settings.rng);
+            if self.between_01.ind_sample(rng) < self.settings.cr_change_probability {
+                curr.cr = self.between_cr.ind_sample(rng);
             }
-            if self.between_01.ind_sample(&mut self.settings.rng) <
-               self.settings.f_change_probability {
-                curr.f = self.between_f.ind_sample(&mut self.settings.rng);
+            if self.between_01.ind_sample(rng) < self.settings.f_change_probability {
+                curr.f = self.between_f.ind_sample(rng);
             }
 
-            let forced_mutation_dim = self.between_dim.ind_sample(&mut self.settings.rng);
+            let forced_mutation_dim = self.between_dim.ind_sample(rng);
             for d in 0..self.dim {
-                if d == forced_mutation_dim ||
-                   self.between_01.ind_sample(&mut self.settings.rng) < curr.cr {
+                if d == forced_mutation_dim || self.between_01.ind_sample(rng) < curr.cr {
 
                     curr.pos[d] = self.best[best_idx].pos[d] +
                                   curr.f * (self.best[id1].pos[d] - self.best[id2].pos[d]);
