@@ -1,3 +1,6 @@
+#![feature(plugin)]
+#![plugin(clippy)]
+
 extern crate rand;
 
 use rand::distributions::{IndependentSample, Range};

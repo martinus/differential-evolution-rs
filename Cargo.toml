@@ -12,4 +12,5 @@ Differential evolution optimizer for rust.
 keywords = ["evolution", "optimization", "differential evolution", "DE"]
 
 [dependencies]
+clippy = "*"
 rand = "0.3"
