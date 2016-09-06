@@ -143,7 +143,7 @@ impl<R> Population<R>
             last_best_cost = None;
         }
 
-        let mut new_best_cost = self.curr[0].cost.unwrap();
+        let mut new_best_cost = last_best_cost;
         for i in 0..self.curr.len() {
             let curr = &mut self.curr[i];
             let best = &mut self.best[i];
@@ -152,9 +152,9 @@ impl<R> Population<R>
             // stays the same.
             if best.cost.is_none() || curr.cost.unwrap() <= best.cost.unwrap() {
                 // find global best. We use < here so that global only updates when fitness changes.
-                if curr.cost.unwrap() < new_best_cost {
+                if new_best_cost.is_none() || curr.cost.unwrap() < new_best_cost.unwrap() {
                     self.best_idx = Some(i);
-                    new_best_cost = curr.cost.unwrap();
+                    new_best_cost = curr.cost;
                 }
 
                 // replace individual's best. swap is *much* faster than clone.
@@ -163,7 +163,7 @@ impl<R> Population<R>
         }
 
         // got a new best?
-        last_best_cost.is_none() || new_best_cost < last_best_cost.unwrap()
+        last_best_cost.is_none() || new_best_cost.unwrap() < last_best_cost.unwrap()
     }
 
     fn update_positions(&mut self) {
