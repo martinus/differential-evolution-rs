@@ -30,7 +30,7 @@ fn main() {
         }
 
         if let Some(best) = pop.evolve() {
-            println!("new best in iteration {}: cost={:?}, pos={:?}", iter, best.cost, best.pos)
+            println!("new best in iteration {}: {:?}", iter, best)
         }
     }
 

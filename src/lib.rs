@@ -149,12 +149,14 @@ impl<R> Population<R>
             if let Some(cost_best) = self.best[i].cost {
                 // if we already have a best, check if current is better.
                 if cost_curr <= cost_best {
-                    // TODO don't clone but swap?
-                    self.best[i] = self.curr[i].clone();
+                    // swap is *much* faster than clone.
+                    std::mem::swap(&mut self.best[i], &mut self.curr[i]);
+                    // reset cost, so user is forced to update it.
+                    self.curr[i].cost = None;
                 }
             } else {
-                // no best yet, overwrite with current
-                self.best[i] = self.curr[i].clone();
+                // no best yet: swap current with best
+                std::mem::swap(&mut self.best[i], &mut self.curr[i]);
             }
 
             // min best cost index
@@ -235,19 +237,37 @@ mod tests {
 
     fn setup<R: rand::Rng>(dim: usize, rng: R) -> Population<R> {
         let settings = Settings::min_max_rng(vec![-20.0; dim], vec![20.0; dim], rng);
+        Population::new(settings)
+    }
 
-        let mut pop = Population::new(settings);
-        for ind in &mut pop.curr {
+    fn dummy_fitness(individuals: &mut Vec<Individual>) {
+        for ind in individuals {
             ind.cost = Some(1.234);
         }
-
-        pop
     }
+
+    #[bench]
+    fn bench_square_fitness_opt(b: &mut Bencher) {
+        let rng: XorShiftRng = OsRng::new().unwrap().gen();
+        let mut pop = setup(5, rng);
+        b.iter(|| {
+            for ind in &mut pop.curr {
+                let mut f = 0.0;
+                for x in &ind.pos {
+                    f += x * x;
+                }
+                ind.cost = Some(f);
+            }
+            black_box(pop.evolve());
+        });
+    }
+
 
     #[bench]
     fn rand_thread_rng(b: &mut Bencher) {
         let mut pop = setup(5, rand::thread_rng());
         b.iter(|| {
+            dummy_fitness(&mut pop.curr);
             black_box(pop.evolve());
         });
     }
@@ -257,7 +277,8 @@ mod tests {
         let rng: XorShiftRng = OsRng::new().unwrap().gen();
         let mut pop = setup(5, rng);
         b.iter(|| {
-            black_box(pop.evolve());
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
         });
     }
 
@@ -266,7 +287,8 @@ mod tests {
         let rng: IsaacRng = OsRng::new().unwrap().gen();
         let mut pop = setup(5, rng);
         b.iter(|| {
-            black_box(pop.evolve());
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
         });
     }
 
@@ -275,7 +297,8 @@ mod tests {
         let rng: Isaac64Rng = OsRng::new().unwrap().gen();
         let mut pop = setup(5, rng);
         b.iter(|| {
-            black_box(pop.evolve());
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
         });
     }
 
@@ -284,7 +307,8 @@ mod tests {
         let rng: StdRng = StdRng::new().unwrap();
         let mut pop = setup(5, rng);
         b.iter(|| {
-            black_box(pop.evolve());
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
         });
     }
 
@@ -293,7 +317,8 @@ mod tests {
         let rng = weak_rng();
         let mut pop = setup(5, rng);
         b.iter(|| {
-            black_box(pop.evolve());
+            dummy_fitness(&mut pop.curr);
+            pop.evolve();
         });
     }
 
