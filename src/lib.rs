@@ -183,12 +183,12 @@ impl<R> Population<R>
 
             // see "Self-Adapting Control Parameters in Differential Evolution:
             // A Comparative Study on Numerical Benchmark Problems"
-            if rng.next_f32() < self.settings.cr_change_probability {
+            if rng.gen::<f32>() < self.settings.cr_change_probability {
                 curr.cr = self.between_cr.ind_sample(rng);
             } else {
                 curr.cr = best.cr;
             }
-            if rng.next_f32() < self.settings.f_change_probability {
+            if rng.gen::<f32>() < self.settings.f_change_probability {
                 curr.f = self.between_f.ind_sample(rng);
             } else {
                 curr.f = best.f;
@@ -201,7 +201,7 @@ impl<R> Population<R>
 
             let forced_mutation_dim = self.between_dim.ind_sample(rng);
             for d in 0..self.dim {
-                if d == forced_mutation_dim || rng.next_f32() < curr.cr {
+                if d == forced_mutation_dim || rng.gen::<f32>() < curr.cr {
                     curr_pos[d] = global_best_pos[d] + curr.f * (best1_pos[d] - best2_pos[d]);
                 } else {
                     curr_pos[d] = best_pos[d];
