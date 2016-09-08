@@ -8,11 +8,11 @@ extern crate rand;
 
 use rand::distributions::{IndependentSample, Range};
 
-pub struct Settings<R>
-    where R: rand::Rng
+pub struct Settings<F, R>
+    where F: Fn(&[f32]) -> f32,
+          R: rand::Rng
 {
-    pub min_pos: Vec<f32>,
-    pub max_pos: Vec<f32>,
+    pub min_max_pos: Vec<(f32, f32)>,
 
     pub cr_min: f32,
     pub cr_max: f32,
@@ -24,16 +24,18 @@ pub struct Settings<R>
 
     pub pop_size: usize,
     pub rng: R,
+
+    pub cost_function: F,
 }
 
-impl<R> Settings<R>
-    where R: rand::Rng
+impl<F, R> Settings<F, R>
+    where F: Fn(&[f32]) -> f32,
+          R: rand::Rng
 {
-    pub fn min_max_rng(min_pos: Vec<f32>, max_pos: Vec<f32>, rng: R) -> Settings<R> {
+    pub fn min_max_rng(min_max_pos: Vec<(f32, f32)>, cost_function: F, rng: R) -> Settings<F, R> {
         // create settings for the algorithm
         Settings {
-            min_pos: min_pos,
-            max_pos: max_pos,
+            min_max_pos: min_max_pos,
 
             cr_min: 0.0,
             cr_max: 1.0,
@@ -45,13 +47,17 @@ impl<R> Settings<R>
 
             pop_size: 50,
             rng: rng,
+
+            cost_function: cost_function,
         }
     }
 }
 
-impl Settings<rand::XorShiftRng> {
-    pub fn new(min_pos: Vec<f32>, max_pos: Vec<f32>) -> Settings<rand::XorShiftRng> {
-        Settings::min_max_rng(min_pos, max_pos, rand::weak_rng())
+impl<F> Settings<F, rand::XorShiftRng>
+    where F: Fn(&[f32]) -> f32
+{
+    pub fn new(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Settings<F, rand::XorShiftRng> {
+        Settings::min_max_rng(min_max_pos, cost_function, rand::weak_rng())
     }
 }
 
@@ -66,42 +72,104 @@ pub struct Individual {
     f: f32,
 }
 
-pub struct Population<R>
-    where R: rand::Rng
+pub struct Population<F, R>
+    where F: Fn(&[f32]) -> f32,
+          R: rand::Rng
 {
     // TODO use a single vector for curr and best and controlparameters?
     pub curr: Vec<Individual>,
     best: Vec<Individual>,
 
-    settings: Settings<R>,
+    settings: Settings<F, R>,
+
+    // index of global best individual. Might be in best or in curr.
     best_idx: Option<usize>,
+
+    // cost value of the global best individual, for quick access
+    best_cost_cache: Option<f32>,
     dim: usize,
     between_popsize: Range<usize>,
     between_dim: Range<usize>,
     between_cr: Range<f32>,
     between_f: Range<f32>,
+
+    pop_countdown: usize,
 }
 
-impl Population<rand::XorShiftRng> {
-    pub fn new(min_pos: Vec<f32>, max_pos: Vec<f32>) -> Population<rand::XorShiftRng> {
-        Population::from_settings(Settings::new(min_pos, max_pos))
+// pub struct PopulationEvaluationIterator<R, F>
+// where R: rand::Rng,
+// F: Fn(&[f32]) -> f32
+// {
+// pop: &'a mut Population<R>,
+// cost_function: F,
+// it: Option<IterMut<'a, Individual>>,
+// }
+//
+// impl<'a, R, F> Iterator for PopulationEvaluationIterator<'a, R, F>
+// where R: 'a + rand::Rng,
+// F: Fn(&[f32]) -> f32
+// {
+// type Item = bool;
+//
+// fn next(&mut self) -> Option<bool> {
+// self.it = Some(self.pop.curr.iter_mut());
+// Some(true)
+// }
+// }
+//
+
+impl<F, R> Iterator for Population<F, R>
+    where F: Fn(&[f32]) -> f32,
+          R: rand::Rng
+{
+    type Item = f32;
+
+    /// Returns the cost value of the current best
+    fn next(&mut self) -> Option<f32> {
+        if 0 == self.pop_countdown {
+            // if the whole pop has been evaluated, evolve it to update positions.
+            // this also copies curr to best, if better.
+            self.update_best();
+            self.update_positions();
+            self.pop_countdown = self.curr.len();
+        }
+
+        // perform a single fitness evaluation
+        self.pop_countdown -= 1;
+        let curr = &mut self.curr[self.pop_countdown];
+
+        let cost = (self.settings.cost_function)(&curr.pos);
+        curr.cost = Some(cost);
+
+        // see if we have improved the global best
+        if self.best_cost_cache.is_none() || cost < self.best_cost_cache.unwrap() {
+            self.best_cost_cache = Some(cost);
+            self.best_idx = Some(self.pop_countdown);
+        }
+
+        self.best_cost_cache
     }
 }
 
-impl<R> Population<R>
-    where R: rand::Rng
+impl<F> Population<F, rand::XorShiftRng>
+    where F: Fn(&[f32]) -> f32
+{
+    pub fn new(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Population<F, rand::XorShiftRng> {
+        Population::from_settings(Settings::new(min_max_pos, cost_function))
+    }
+}
+
+impl<F, R> Population<F, R>
+    where F: Fn(&[f32]) -> f32,
+          R: rand::Rng
 {
     // Creates a new population based on the given settings.
-    pub fn from_settings(s: Settings<R>) -> Population<R> {
-        assert_eq!(s.min_pos.len(),
-                   s.max_pos.len(),
-                   "min_pos and max_pos need to have the same number of elements");
-        assert!(s.min_pos.len() >= 1,
+    pub fn from_settings(s: Settings<F, R>) -> Population<F, R> {
+        assert!(s.min_max_pos.len() >= 1,
                 "need at least one element to optimize");
 
-
         // create a vector of randomly initialized individuals for current.
-        let dim = s.min_pos.len();
+        let dim = s.min_max_pos.len();
 
         // Empty individual, with no cost value (yet)
         let dummy_individual = Individual {
@@ -116,7 +184,9 @@ impl<R> Population<R>
             curr: vec![dummy_individual.clone(); s.pop_size],
             best: vec![dummy_individual; s.pop_size],
             best_idx: None,
+            best_cost_cache: None,
             dim: dim,
+            pop_countdown: s.pop_size,
             between_popsize: Range::new(0, s.pop_size),
             between_dim: Range::new(0, dim),
             between_cr: Range::new(s.cr_min, s.cr_max),
@@ -131,7 +201,8 @@ impl<R> Population<R>
 
             // random range for each dimension
             for d in 0..dim {
-                let between_min_max = Range::new(pop.settings.min_pos[d], pop.settings.max_pos[d]);
+                let between_min_max = Range::new(pop.settings.min_max_pos[d].0,
+                                                 pop.settings.min_max_pos[d].1);
                 ind.pos[d] = between_min_max.ind_sample(&mut pop.settings.rng);
             }
         }
@@ -139,15 +210,7 @@ impl<R> Population<R>
         pop
     }
 
-    fn update_best(&mut self) -> bool {
-        let last_best_cost: Option<f32>;
-        if let Some(last_best_idx) = self.best_idx {
-            last_best_cost = self.best[last_best_idx].cost;
-        } else {
-            last_best_cost = None;
-        }
-
-        let mut new_best_cost = last_best_cost;
+    fn update_best(&mut self) {
         for i in 0..self.curr.len() {
             let curr = &mut self.curr[i];
             let best = &mut self.best[i];
@@ -155,19 +218,10 @@ impl<R> Population<R>
             // we use <= here, so that the individual moves even if the cost
             // stays the same.
             if best.cost.is_none() || curr.cost.unwrap() <= best.cost.unwrap() {
-                // find global best. We use < here so that global only updates when fitness changes.
-                if new_best_cost.is_none() || curr.cost.unwrap() < new_best_cost.unwrap() {
-                    self.best_idx = Some(i);
-                    new_best_cost = curr.cost;
-                }
-
                 // replace individual's best. swap is *much* faster than clone.
                 std::mem::swap(curr, best);
             }
         }
-
-        // got a new best?
-        last_best_cost.is_none() || new_best_cost.unwrap() < last_best_cost.unwrap()
     }
 
     fn update_positions(&mut self) {
@@ -222,27 +276,22 @@ impl<R> Population<R>
     }
 
     pub fn best(&self) -> Option<&Individual> {
-        if self.best_idx.is_none() {
-            None
+        if let Some(bi) = self.best_idx {
+            let curr = &self.curr[bi];
+            let best = &self.best[bi];
+
+            if curr.cost.is_none() {
+                return Some(best);
+            }
+            if best.cost.is_none() {
+                return Some(curr);
+            }
+            if curr.cost.unwrap() < best.cost.unwrap() {
+                return Some(curr);
+            }
+            return Some(best);
         } else {
-            Some(&self.best[self.best_idx.unwrap()])
-        }
-    }
-
-    // Uses updated cost values to update positions of individuals.
-    pub fn evolve(&mut self) -> Option<&Individual> {
-        let found_new_best = self.update_best();
-        self.update_positions();
-
-        if found_new_best { self.best() } else { None }
-    }
-
-    pub fn iter<F>(&mut self, cost_function: F)
-        where F: Fn(&[f32]) -> f32
-    {
-
-        for ind in &mut self.curr {
-            ind.cost = Some(cost_function(&ind.pos));
+            None
         }
     }
 }
