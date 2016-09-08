@@ -123,12 +123,13 @@ impl<F, R> Iterator for Population<F, R>
     }
 }
 
-impl<F> Population<F, rand::XorShiftRng>
+
+pub fn self_adaptive_de<F>(min_max_pos: Vec<(f32, f32)>,
+                           cost_function: F)
+                           -> Population<F, rand::XorShiftRng>
     where F: Fn(&[f32]) -> f32
 {
-    pub fn new(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Population<F, rand::XorShiftRng> {
-        Population::from_settings(Settings::new(min_max_pos, cost_function))
-    }
+    Population::from_settings(Settings::new(min_max_pos, cost_function))
 }
 
 impl<F, R> Population<F, R>
@@ -213,7 +214,7 @@ impl<F, R> Population<F, R>
             let mut id3 = self.between_popsize.ind_sample(rng);
             while id3 == id1 || id3 == id2 {
                 id3 = self.between_popsize.ind_sample(rng);
-            }            
+            }
 
             let curr = &mut self.curr[i];
             let best = &self.best[i];
