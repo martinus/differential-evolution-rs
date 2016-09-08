@@ -7,14 +7,13 @@ fn main() {
     // problem dimension
     let dim = 10;
 
+    // initial search space for each dimension
+    let initial_min_max = vec![(-100.0, 100.0); dim];
+
     // create population with default settings:
-    let mut pop = Population::new(vec![(-100.0, 100.0); dim], |pos| {
-        // sum of squares
-        let mut f = 0.0;
-        for x in pos {
-            f += x*x;
-        }
-        f
+    let mut pop = Population::new(initial_min_max, |pos| {
+        // cost function to minimize: sum of squares
+        pos.iter().fold(0.0, |sum, x| sum + x*x)
     });
 
     // perform 10000 cost evaluations
