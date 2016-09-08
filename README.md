@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/martinus/differential-evolution-rs.svg?branch=master)](https://travis-ci.org/martinus/differential-evolution-rs)
+
 # Differential Evolution
 Generic, simple, fast Differential Evolution for Rust. 
 
