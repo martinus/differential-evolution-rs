@@ -27,26 +27,23 @@ This example finds the minimum of a simple 5-dimensional function.
 // Simple example how to use the API.
 extern crate differential_evolution;
 
-use differential_evolution::Population;
+use differential_evolution::self_adaptive_de;
 
 fn main() {
-    // problem dimension
-    let dim = 5;
-
-    // initial search space for each dimension
-    let initial_min_max = vec![(-10.0, 10.0); dim];
-
-    // create population with default settings:
-    let mut pop = Population::new(initial_min_max, |pos| {
+    // create a self adaptive DE with an inital search area
+    // from -10 to 10 in 5 dimensions.
+    let mut de = self_adaptive_de(vec![(-10.0, 10.0); 5], |pos| {
         // cost function to minimize: sum of squares
         pos.iter().fold(0.0, |sum, x| sum + x*x)
     });
 
     // perform 10000 cost evaluations
-    pop.nth(10000);
-
-    // see what we've found
-    println!("best: {:?}", pop.best());
+    de.nth(10000);
+    
+    // show the result
+    let (cost, pos) = de.best().unwrap();
+    println!("cost: {}", cost);
+    println!("pos: {:?}", pos);
 }
 ```
 
