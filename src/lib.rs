@@ -305,112 +305,71 @@ mod tests {
     use rand::{OsRng, weak_rng};
 
 
-    fn setup<R: rand::Rng>(dim: usize, rng: R) -> Population<R> {
-        let settings = Settings::min_max_rng(vec![-20.0; dim], vec![20.0; dim], rng);
-        Population::new(settings)
-    }
-
-    fn dummy_fitness(individuals: &mut Vec<Individual>) {
-        for ind in individuals {
-            ind.cost = Some(1.234);
-        }
+    fn setup<F: Fn(&[f32]) -> f32, R: rand::Rng>(dim: usize, cost_fn: F, rng: R) -> Population<F, R> {
+        let s = Settings::min_max_rng(vec![(-100.0, 100.0); dim], cost_fn, rng);
+        Population::from_settings(s)
     }
 
     #[bench]
     fn bench_square_fitness_opt(b: &mut Bencher) {
         let rng: XorShiftRng = OsRng::new().unwrap().gen();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            for ind in &mut pop.curr {
-                let mut f = 0.0;
-                for x in &ind.pos {
-                    f += x * x;
-                }
-                ind.cost = Some(f);
-            }
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
 
     #[bench]
     fn rand_thread_rng(b: &mut Bencher) {
-        let mut pop = setup(5, rand::thread_rng());
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rand::thread_rng());
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_xor_shift(b: &mut Bencher) {
         let rng: XorShiftRng = OsRng::new().unwrap().gen();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_chacha(b: &mut Bencher) {
         let rng: ChaChaRng = OsRng::new().unwrap().gen();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_isaac(b: &mut Bencher) {
         let rng: IsaacRng = OsRng::new().unwrap().gen();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_isaac64(b: &mut Bencher) {
         let rng: Isaac64Rng = OsRng::new().unwrap().gen();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_std(b: &mut Bencher) {
         let rng: StdRng = StdRng::new().unwrap();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_osrng(b: &mut Bencher) {
         let rng: OsRng = OsRng::new().unwrap();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
 
     #[bench]
     fn rand_weak_rng(b: &mut Bencher) {
         let rng = weak_rng();
-        let mut pop = setup(5, rng);
-        b.iter(|| {
-            dummy_fitness(&mut pop.curr);
-            pop.evolve();
-        });
+        let mut pop = setup(5, |_| 1.234, rng);
+        b.iter(|| pop.next());
     }
-
-
 }
