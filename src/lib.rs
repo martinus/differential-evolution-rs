@@ -96,28 +96,6 @@ pub struct Population<F, R>
     pop_countdown: usize,
 }
 
-// pub struct PopulationEvaluationIterator<R, F>
-// where R: rand::Rng,
-// F: Fn(&[f32]) -> f32
-// {
-// pop: &'a mut Population<R>,
-// cost_function: F,
-// it: Option<IterMut<'a, Individual>>,
-// }
-//
-// impl<'a, R, F> Iterator for PopulationEvaluationIterator<'a, R, F>
-// where R: 'a + rand::Rng,
-// F: Fn(&[f32]) -> f32
-// {
-// type Item = bool;
-//
-// fn next(&mut self) -> Option<bool> {
-// self.it = Some(self.pop.curr.iter_mut());
-// Some(true)
-// }
-// }
-//
-
 impl<F, R> Iterator for Population<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
