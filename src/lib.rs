@@ -275,21 +275,21 @@ impl<F, R> Population<F, R>
         }
     }
 
-    pub fn best(&self) -> Option<(&[f32], f32)> {
+    pub fn best(&self) -> Option<(f32, &[f32])> {
         if let Some(bi) = self.best_idx {
             let curr = &self.curr[bi];
             let best = &self.best[bi];
 
             if curr.cost.is_none() {
-                return Some((&best.pos, best.cost.unwrap()));
+                return Some((best.cost.unwrap(), &best.pos));
             }
             if best.cost.is_none() {
-                return Some((&curr.pos, curr.cost.unwrap()));
+                return Some((curr.cost.unwrap(), &curr.pos));
             }
             if curr.cost.unwrap() < best.cost.unwrap() {
-                return Some((&curr.pos, curr.cost.unwrap()));
+                return Some((curr.cost.unwrap(), &curr.pos));
             }
-            return Some((&best.pos, best.cost.unwrap()));
+            return Some((best.cost.unwrap(), &best.pos));
         } else {
             None
         }
