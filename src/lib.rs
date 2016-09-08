@@ -202,6 +202,9 @@ impl<F, R> Population<F, R>
         }
     }
 
+    // Modifies all the curr positions. This needs a lot of random numbers, so
+    // for a fast cost function it is important to use a fast random number
+    // generator.
     fn update_positions(&mut self) {
         let rng = &mut self.settings.rng;
         for i in 0..self.curr.len() {
@@ -243,6 +246,8 @@ impl<F, R> Population<F, R>
             let forced_mutation_dim = self.between_dim.ind_sample(rng);
 
             // This implements the DE/rand/1/bin, the most widely used algorithm.
+            // See "A Comparative Study of Differential Evolution Variants for
+            // Global Optimization (2006)".
             for d in 0..self.dim {
                 if d == forced_mutation_dim || rng.gen::<f32>() < curr.cr {
                     curr_pos[d] = best3_pos[d] + curr.f * (best1_pos[d] - best2_pos[d]);
