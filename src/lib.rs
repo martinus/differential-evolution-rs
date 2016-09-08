@@ -45,7 +45,7 @@ impl<F, R> Settings<F, R>
             f_max: 1.0,
             f_change_probability: 0.1,
 
-            pop_size: 50,
+            pop_size: 100,
             rng: rng,
 
             cost_function: cost_function,
@@ -203,18 +203,20 @@ impl<F, R> Population<F, R>
     }
 
     fn update_positions(&mut self) {
-        let global_best_pos = &self.best[self.best_idx.unwrap()].pos;
         let rng = &mut self.settings.rng;
         for i in 0..self.curr.len() {
-            let mut id1 = self.between_popsize.ind_sample(rng);
-            while id1 == i {
-                id1 = self.between_popsize.ind_sample(rng);
-            }
+            // sample 3 different individuals
+            let id1 = self.between_popsize.ind_sample(rng);
 
             let mut id2 = self.between_popsize.ind_sample(rng);
-            while id2 == i || id2 == id1 {
+            while id2 == id1 {
                 id2 = self.between_popsize.ind_sample(rng);
             }
+
+            let mut id3 = self.between_popsize.ind_sample(rng);
+            while id3 == id1 || id3 == id2 {
+                id3 = self.between_popsize.ind_sample(rng);
+            }            
 
             let curr = &mut self.curr[i];
             let best = &self.best[i];
@@ -236,13 +238,14 @@ impl<F, R> Population<F, R>
             let best_pos = &best.pos;
             let best1_pos = &self.best[id1].pos;
             let best2_pos = &self.best[id2].pos;
+            let best3_pos = &self.best[id3].pos;
 
             let forced_mutation_dim = self.between_dim.ind_sample(rng);
 
-            // This implements the DE/1/best/bin algorithm.
+            // This implements the DE/rand/1/bin, the most widely used algorithm.
             for d in 0..self.dim {
                 if d == forced_mutation_dim || rng.gen::<f32>() < curr.cr {
-                    curr_pos[d] = global_best_pos[d] + curr.f * (best1_pos[d] - best2_pos[d]);
+                    curr_pos[d] = best3_pos[d] + curr.f * (best1_pos[d] - best2_pos[d]);
                 } else {
                     curr_pos[d] = best_pos[d];
                 }
