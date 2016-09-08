@@ -5,10 +5,10 @@ use differential_evolution::Population;
 
 fn main() {
     // problem dimension
-    let dim = 10;
+    let dim = 5;
 
     // initial search space for each dimension
-    let initial_min_max = vec![(-100.0, 100.0); dim];
+    let initial_min_max = vec![(-10.0, 10.0); dim];
 
     // create population with default settings:
     let mut pop = Population::new(initial_min_max, |pos| {
