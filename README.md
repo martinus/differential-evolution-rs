@@ -1,14 +1,68 @@
+# Differential Evolution
+Simple and powerful global optimization using a [Self-Adapting Differential Evolution](https://www.researchgate.net/publication/3418914_Self-Adapting_Control_Parameters_in_Differential_Evolution_A_Comparative_Study_on_Numerical_Benchmark_Problems) for Rust. See Wikipedia's article on [Differential Evolution](https://en.wikipedia.org/wiki/Differential_evolution) for more information.
+
 [![Build Status](https://travis-ci.org/martinus/differential-evolution-rs.svg?branch=master)](https://travis-ci.org/martinus/differential-evolution-rs)
 
-# Differential Evolution
-Generic, simple, fast Differential Evolution for Rust. 
+## Usage
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+differential-evolution = "*"
+```
+
+and this to your crate root:
+
+```rust
+extern crate differential_evolution;
+```
+
+## Examples
+
+Differential Evolution is a global optimization algorithm that by iteratively improving candidate solutions with regards to a user-defined cost function. 
+
+This example finds the minimum of a simple 5-dimensional function.
+
+```rust
+// Simple example how to use the API.
+extern crate differential_evolution;
+
+use differential_evolution::Population;
+
+fn main() {
+    // problem dimension
+    let dim = 5;
+
+    // initial search space for each dimension
+    let initial_min_max = vec![(-10.0, 10.0); dim];
+
+    // create population with default settings:
+    let mut pop = Population::new(initial_min_max, |pos| {
+        // cost function to minimize: sum of squares
+        pos.iter().fold(0.0, |sum, x| sum + x*x)
+    });
+
+    // perform 10000 cost evaluations
+    pop.nth(10000);
+
+    // see what we've found
+    println!("best: {:?}", pop.best());
+}
+```
 
 
 ## Status
+### 2016-09-08
+I'm adding documentation, and use the excellent rand crate as a template for that.
+
+### 2016-09-06
 It seems to work, and I have done some optimizations as well. My tests work nicely, so I've change the version to 0.1.1.
 
+### 2016-09-02
 Currently this is my little learning project, to get to know rust.
 I try to crate a nice generic API interface, but first I just try to get it to work on a little example and set up everything correctly.
+
 
 # Similar Crates
 
