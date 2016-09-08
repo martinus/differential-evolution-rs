@@ -6,8 +6,8 @@ use std::f32::consts::PI;
 use std::env;
 
 fn rastrigin(pos: &[f32]) -> f32 {
-    10.0 * (pos.len() as f32) +
-    pos.iter().fold(0.0, |sum, x| sum + x * x - 10.0 * (2.0 * PI * x).cos())
+    pos.iter().fold(0.0, |sum, x| 
+        sum + x * x - 10.0 * (2.0 * PI * x).cos() + 10.0)
 }
 
 fn main() {
