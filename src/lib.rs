@@ -62,7 +62,7 @@ impl<F> Settings<F, rand::XorShiftRng>
 }
 
 #[derive(Clone,Debug)]
-pub struct Individual {
+struct Individual {
     pos: Vec<f32>,
     // the lower, the better.
     cost: Option<f32>,
@@ -283,7 +283,10 @@ mod tests {
     use rand::{OsRng, weak_rng};
 
 
-    fn setup<F: Fn(&[f32]) -> f32, R: rand::Rng>(dim: usize, cost_fn: F, rng: R) -> Population<F, R> {
+    fn setup<F: Fn(&[f32]) -> f32, R: rand::Rng>(dim: usize,
+                                                 cost_fn: F,
+                                                 rng: R)
+                                                 -> Population<F, R> {
         let s = Settings::min_max_rng(vec![(-100.0, 100.0); dim], cost_fn, rng);
         Population::from_settings(s)
     }
