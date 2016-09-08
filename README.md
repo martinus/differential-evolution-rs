@@ -19,7 +19,7 @@ extern crate differential_evolution;
 
 ## Examples
 
-Differential Evolution is a global optimization algorithm that by iteratively improving candidate solutions with regards to a user-defined cost function. 
+Differential Evolution is a global optimization algorithm that tries to iteratively improve candidate solutions with regards to a user-defined cost function. 
 
 This example finds the minimum of a simple 5-dimensional function.
 
