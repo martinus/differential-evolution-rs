@@ -1,6 +1,6 @@
 [package]
 name = "differential-evolution"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Martin Ankerl <martin.ankerl@gmail.com>"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
@@ -12,5 +12,4 @@ Differential evolution optimizer for rust.
 keywords = ["evolution", "optimization", "differential evolution", "DE"]
 
 [dependencies]
-clippy = "*"
 rand = "0.3"
