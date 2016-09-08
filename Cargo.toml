@@ -9,7 +9,7 @@ homepage = "https://github.com/martinus/differential-evolution-rs"
 description = """
 Differential evolution optimizer for rust. 
 """
-keywords = ["evolution", "optimization", "differential evolution", "DE"]
+keywords = ["evolution", "optimization", "genetic", "DE"]
 
 [dependencies]
 rand = "0.3"
