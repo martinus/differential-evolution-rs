@@ -1,7 +1,6 @@
-# Differential Evolution
-Simple and powerful global optimization using a [Self-Adapting Differential Evolution](https://www.researchgate.net/publication/3418914_Self-Adapting_Control_Parameters_in_Differential_Evolution_A_Comparative_Study_on_Numerical_Benchmark_Problems) for Rust. See Wikipedia's article on [Differential Evolution](https://en.wikipedia.org/wiki/Differential_evolution) for more information.
+# Differential Evolution [![Build Status](https://travis-ci.org/martinus/differential-evolution-rs.svg?branch=master)](https://travis-ci.org/martinus/differential-evolution-rs)
 
-[![Build Status](https://travis-ci.org/martinus/differential-evolution-rs.svg?branch=master)](https://travis-ci.org/martinus/differential-evolution-rs)
+Simple and powerful global optimization using a [Self-Adapting Differential Evolution](https://www.researchgate.net/publication/3418914_Self-Adapting_Control_Parameters_in_Differential_Evolution_A_Comparative_Study_on_Numerical_Benchmark_Problems) for Rust. See Wikipedia's article on [Differential Evolution](https://en.wikipedia.org/wiki/Differential_evolution) for more information.
 
 ## Usage
 
@@ -50,19 +49,6 @@ fn main() {
     println!("best: {:?}", pop.best());
 }
 ```
-
-
-## Status
-### 2016-09-08
-I'm adding documentation, and use the excellent rand crate as a template for that.
-
-### 2016-09-06
-It seems to work, and I have done some optimizations as well. My tests work nicely, so I've change the version to 0.1.1.
-
-### 2016-09-02
-Currently this is my little learning project, to get to know rust.
-I try to crate a nice generic API interface, but first I just try to get it to work on a little example and set up everything correctly.
-
 
 # Similar Crates
 
