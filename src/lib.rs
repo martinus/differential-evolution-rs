@@ -63,9 +63,9 @@ impl<F> Settings<F, rand::XorShiftRng>
 
 #[derive(Clone,Debug)]
 pub struct Individual {
-    pub pos: Vec<f32>,
+    pos: Vec<f32>,
     // the lower, the better.
-    pub cost: Option<f32>,
+    cost: Option<f32>,
 
     // control parameters
     cr: f32,
@@ -77,7 +77,7 @@ pub struct Population<F, R>
           R: rand::Rng
 {
     // TODO use a single vector for curr and best and controlparameters?
-    pub curr: Vec<Individual>,
+    curr: Vec<Individual>,
     best: Vec<Individual>,
 
     settings: Settings<F, R>,
@@ -275,21 +275,21 @@ impl<F, R> Population<F, R>
         }
     }
 
-    pub fn best(&self) -> Option<&Individual> {
+    pub fn best(&self) -> Option<(&[f32], f32)> {
         if let Some(bi) = self.best_idx {
             let curr = &self.curr[bi];
             let best = &self.best[bi];
 
             if curr.cost.is_none() {
-                return Some(best);
+                return Some((&best.pos, best.cost.unwrap()));
             }
             if best.cost.is_none() {
-                return Some(curr);
+                return Some((&curr.pos, curr.cost.unwrap()));
             }
             if curr.cost.unwrap() < best.cost.unwrap() {
-                return Some(curr);
+                return Some((&curr.pos, curr.cost.unwrap()));
             }
-            return Some(best);
+            return Some((&best.pos, best.cost.unwrap()));
         } else {
             None
         }
