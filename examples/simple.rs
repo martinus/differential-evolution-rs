@@ -1,7 +1,3 @@
-// Simple example how to use the API.
-extern crate differential_evolution;
-
-use differential_evolution::self_adaptive_de;
 // Copyright 2016 Martin Ankerl. 
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -9,6 +5,10 @@ use differential_evolution::self_adaptive_de;
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+
+extern crate differential_evolution;
+
+use differential_evolution::self_adaptive_de;
 
 fn main() {
     // create a self adaptive DE with an inital search area

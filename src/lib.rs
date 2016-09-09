@@ -1,4 +1,4 @@
-// Copyright 2016 Martin Ankerl. 
+// Copyright 2016 Martin Ankerl.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -6,27 +6,120 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Differential Evolution optimizer for rust.
+//!
+//! Simple and powerful global optimization using a 
+//! [Self-Adapting Differential Evolution](https://www.researchgate.net/publication/3418914_Self-Adapting_Control_Parameters_in_Differential_Evolution_A_Comparative_Study_on_Numerical_Benchmark_Problems)
+//! for Rust. See Wikipedia's article on
+//! [Differential Evolution](https://en.wikipedia.org/wiki/Differential_evolution)
+//! for more information.
+//!
+//! ## Usage
+//!
+//! Add this to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! differential-evolution = "*"
+//! ```
+//!
+//! and this to your crate root:
+//!
+//! ```rust
+//! extern crate differential_evolution;
+//! ```
+//!
+//! ## Examples
+//!
+//! Differential Evolution is a global optimization algorithm that
+//! tries to iteratively improve candidate solutions with regards to
+//! a user-defined cost function.
+//!
+//! ### Sum of Squares
+//! This example finds the minimum of a simple 5-dimensional function.
+//!
+//! ```
+//! extern crate differential_evolution;
+//! 
+//! use differential_evolution::self_adaptive_de;
+//! 
+//! fn main() {
+//!     // create a self adaptive DE with an inital search area
+//!     // from -10 to 10 in 5 dimensions.
+//!     let mut de = self_adaptive_de(vec![(-10.0, 10.0); 5], |pos| {
+//!         // cost function to minimize: sum of squares
+//!         pos.iter().fold(0.0, |sum, x| sum + x*x)
+//!     });
+//! 
+//!     // perform 10000 cost evaluations
+//!     de.nth(10000);
+//!     
+//!     // show the result
+//!     let (cost, pos) = de.best().unwrap();
+//!     println!("cost: {}", cost);
+//!     println!("pos: {:?}", pos);
+//! }
+//! ```
+//! 
+//! # Similar Crates
+//!
+//! - [darwin-rs](https://github.com/willi-kappler/darwin-rs)
+//! - [RsGenetic](https://github.com/m-decoster/RsGenetic)
+//!
+
 extern crate rand;
 
 use rand::distributions::{IndependentSample, Range};
 
+/// Holds all settings for the self adaptive differential evolution
+/// algorithm. 
 pub struct Settings<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
 {
+    /// The population is initialized with uniform random
+    /// for each dimension between the tuple's size.
+    /// Beware that this is only the initial state, the DE 
+    /// will search outside of this initial search space.
     pub min_max_pos: Vec<(f32, f32)>,
 
-    pub cr_min: f32,
-    pub cr_max: f32,
+    /// Minimum and maximum value for `cr`, the crossover control parameter.
+    /// a good value is (0, 1) so cr is randomly choosen between in the full
+    /// range of usable CR's from `[0, 1)`. 
+    pub cr_min_max: (f32, f32),
+
+    /// Probability to change the `cr` value of an individual. Tests with
+    /// 0.05, 0.1, 0.2 and 0.3 did not show any significant different
+    /// results. So 0.1 seems to be a reasonable choice.
     pub cr_change_probability: f32,
 
-    pub f_min: f32,
-    pub f_max: f32,
+    /// Minimum and maximum value for `f`, the amplification factor of the
+    /// difference vector. DE is more sensitive to `F` than it is to `CR`.
+    /// In literature, `F` is rarely greater than 1. If `F=0`, the evolution
+    /// degenerates to a crossover but no mutation, so a reasonable choise
+    /// for f_min_max seems to be (0.1, 1.0). 
+    pub f_min_max: (f32, f32),
+
+    /// Probability to change the `f` value of an individual. See 
+    /// `cr_change_probability`, 0.1 is a reasonable choice. 
     pub f_change_probability: f32,
 
+    /// Number of individuals for the DE. In many benchmarks, a size of
+    /// 100 is used. The choice somewhat depends on the difficulty and the
+    /// dimensionality of the  problem to solve. Reasonable choices seem
+    /// between 20 and 200.           
     pub pop_size: usize,
+
+    /// Random number generator used to generate mutations. If the fitness
+    /// function is fairly fast, the random number generator should be
+    /// very fast as well. Since it is not necessary to use a cryptographic
+    /// secure RNG, the best (fastest) choice is to use `rand::weak_rng()`.
     pub rng: R,
 
+    /// The cost function to minimize. This takes an `&[f32]` and returns
+    /// the calculated cost for this position as `f32`. This should be
+    /// fast to evaluate, and always produce the same result for the same
+    /// input.
     pub cost_function: F,
 }
 
@@ -34,17 +127,16 @@ impl<F, R> Settings<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
 {
+    /// Creates default settings, but with customizable random number generator.
     pub fn min_max_rng(min_max_pos: Vec<(f32, f32)>, cost_function: F, rng: R) -> Settings<F, R> {
         // create settings for the algorithm
         Settings {
             min_max_pos: min_max_pos,
 
-            cr_min: 0.0,
-            cr_max: 1.0,
+            cr_min_max: (0.0, 1.0),
             cr_change_probability: 0.1,
 
-            f_min: 0.1,
-            f_max: 1.0,
+            f_min_max: (0.1, 1.0),
             f_change_probability: 0.1,
 
             pop_size: 100,
@@ -58,6 +150,7 @@ impl<F, R> Settings<F, R>
 impl<F> Settings<F, rand::XorShiftRng>
     where F: Fn(&[f32]) -> f32
 {
+    /// Creates default settings.
     pub fn new(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Settings<F, rand::XorShiftRng> {
         Settings::min_max_rng(min_max_pos, cost_function, rand::weak_rng())
     }
@@ -170,8 +263,8 @@ impl<F, R> Population<F, R>
             pop_countdown: s.pop_size,
             between_popsize: Range::new(0, s.pop_size),
             between_dim: Range::new(0, dim),
-            between_cr: Range::new(s.cr_min, s.cr_max),
-            between_f: Range::new(s.f_min, s.f_max),
+            between_cr: Range::new(s.cr_min_max.0, s.cr_min_max.1),
+            between_f: Range::new(s.f_min_max.0, s.f_min_max.1),
             settings: s,
         };
 
