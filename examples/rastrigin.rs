@@ -24,17 +24,19 @@ fn main() {
     // command line args: dimension, number of evaluations
     let args: Vec<String> = env::args().collect();
     let dim = args[1].parse::<usize>().unwrap();
-    let num_cost_evaluations = args[2].parse::<usize>().unwrap();
 
     // initial search space for each dimension
     let initial_min_max = vec![(-5.12, 5.12); dim];
 
-    // perform optimization 
+    // perform optimization until best cost is below a threshold
     let mut de = self_adaptive_de(initial_min_max, rastrigin);
-    de.nth(num_cost_evaluations);
+    for (i, item) in de.iter().enumerate() {
+        println!("{:?} {:?}", i, item);
+    }
+    //de.find(|&(cost, iters)| cost < 0.1 || iters >= 100000);
 
     // see what we've found
-    println!("{} evaluations done", num_cost_evaluations);
+    println!("{} evaluations done", de.num_cost_evaluations());
     
     let (cost, pos) = de.best().unwrap();
     println!("{} best cost", cost);

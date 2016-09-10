@@ -8,8 +8,8 @@
 
 //! Differential Evolution optimizer for rust.
 //!
-//! Simple and powerful global optimization using a 
-//! [Self-Adapting Differential Evolution](https://www.researchgate.net/publication/3418914_Self-Adapting_Control_Parameters_in_Differential_Evolution_A_Comparative_Study_on_Numerical_Benchmark_Problems)
+//! Simple and powerful global optimization using a
+//! [Self-Adapting Differential Evolution](http://bit.ly/2cMPiMj)
 //! for Rust. See Wikipedia's article on
 //! [Differential Evolution](https://en.wikipedia.org/wiki/Differential_evolution)
 //! for more information.
@@ -40,9 +40,9 @@
 //!
 //! ```
 //! extern crate differential_evolution;
-//! 
+//!
 //! use differential_evolution::self_adaptive_de;
-//! 
+//!
 //! fn main() {
 //!     // create a self adaptive DE with an inital search area
 //!     // from -10 to 10 in 5 dimensions.
@@ -50,17 +50,17 @@
 //!         // cost function to minimize: sum of squares
 //!         pos.iter().fold(0.0, |sum, x| sum + x*x)
 //!     });
-//! 
+//!
 //!     // perform 10000 cost evaluations
 //!     de.nth(10000);
-//!     
+//!
 //!     // show the result
 //!     let (cost, pos) = de.best().unwrap();
 //!     println!("cost: {}", cost);
 //!     println!("pos: {:?}", pos);
 //! }
 //! ```
-//! 
+//!
 //! # Similar Crates
 //!
 //! - [darwin-rs](https://github.com/willi-kappler/darwin-rs)
@@ -72,20 +72,20 @@ extern crate rand;
 use rand::distributions::{IndependentSample, Range};
 
 /// Holds all settings for the self adaptive differential evolution
-/// algorithm. 
+/// algorithm.
 pub struct Settings<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
 {
     /// The population is initialized with uniform random
     /// for each dimension between the tuple's size.
-    /// Beware that this is only the initial state, the DE 
+    /// Beware that this is only the initial state, the DE
     /// will search outside of this initial search space.
     pub min_max_pos: Vec<(f32, f32)>,
 
     /// Minimum and maximum value for `cr`, the crossover control parameter.
     /// a good value is (0, 1) so cr is randomly choosen between in the full
-    /// range of usable CR's from `[0, 1)`. 
+    /// range of usable CR's from `[0, 1)`.
     pub cr_min_max: (f32, f32),
 
     /// Probability to change the `cr` value of an individual. Tests with
@@ -97,17 +97,17 @@ pub struct Settings<F, R>
     /// difference vector. DE is more sensitive to `F` than it is to `CR`.
     /// In literature, `F` is rarely greater than 1. If `F=0`, the evolution
     /// degenerates to a crossover but no mutation, so a reasonable choise
-    /// for f_min_max seems to be (0.1, 1.0). 
+    /// for f_min_max seems to be (0.1, 1.0).
     pub f_min_max: (f32, f32),
 
-    /// Probability to change the `f` value of an individual. See 
-    /// `cr_change_probability`, 0.1 is a reasonable choice. 
+    /// Probability to change the `f` value of an individual. See
+    /// `cr_change_probability`, 0.1 is a reasonable choice.
     pub f_change_probability: f32,
 
     /// Number of individuals for the DE. In many benchmarks, a size of
     /// 100 is used. The choice somewhat depends on the difficulty and the
     /// dimensionality of the  problem to solve. Reasonable choices seem
-    /// between 20 and 200.           
+    /// between 20 and 200.
     pub pop_size: usize,
 
     /// Random number generator used to generate mutations. If the fitness
@@ -132,9 +132,10 @@ impl<F> Settings<F, rand::XorShiftRng>
     /// size of 100. It also uses This uses `rand::weak_rng()` for the fastest random number
     /// generator available.
     ///
-    /// For most problems this should be a fairly good parameter set. 
-    pub fn default(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Settings<F, rand::XorShiftRng> {
-        // create settings for the algorithm
+    /// For most problems this should be a fairly good parameter set.
+    pub fn default(min_max_pos: Vec<(f32, f32)>,
+                   cost_function: F)
+                   -> Settings<F, rand::XorShiftRng> {
         Settings {
             min_max_pos: min_max_pos,
 
@@ -163,6 +164,7 @@ struct Individual {
     f: f32,
 }
 
+/// Holds the population for the differential evolution based on the given settings.
 pub struct Population<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
@@ -178,6 +180,8 @@ pub struct Population<F, R>
 
     // cost value of the global best individual, for quick access
     best_cost_cache: Option<f32>,
+    num_cost_evaluations: usize,
+
     dim: usize,
     between_popsize: Range<usize>,
     between_dim: Range<usize>,
@@ -187,14 +191,68 @@ pub struct Population<F, R>
     pop_countdown: usize,
 }
 
+/// The population inplements the `Iterator` trait, and for each call
+/// of `next()` the cost function is evaluated once and returns the
+/// fitness value of the current global best. This way it is possible
+/// to use all the iterator's features for optimizig. Here are a few
+/// examples.
+///
+/// Let's say we have a simple cost function that calculates sum
+/// of squares:
+///
+/// ```
+/// fn sum_of_squares(pos: &[f32]) -> f32 {
+///     pos.iter().fold(0.0, |sum, x| sum + x*x)
+/// }
+/// ```
+/// 
+/// We'd like to search for the minimum in the range -5 to 5, for
+/// 10 dimensions:
+/// 
+/// ```
+/// let initial_min_max = vec![(-5.0, 5.0); 10];
+/// ```
+////
+/// We can create a self adaptive DE, and search until the cost
+/// reaches a given minimum: 
+/// 
+/// ```
+/// # use differential_evolution::self_adaptive_de;
+/// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
+/// # let initial_min_max = vec![(-5.0, 5.0); 10];
+/// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
+/// de.find(|&cost| cost < 0.1);    
+/// ```
+/// 
+/// This is a bit dangerous though, because the optimizer might never reach that minimum.
+/// It is safer to just let it run for a given number of evaluations:
+///
+/// ```
+/// # use differential_evolution::self_adaptive_de;
+/// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
+/// # let initial_min_max = vec![(-5.0, 5.0); 10];
+/// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
+/// de.nth(10000);
+/// ```
+/// 
+/// Of course it is possible to combine both: run until cost is below a threshold, or until
+/// the maximum number of iterations have been reached:
+///
+/// # use differential_evolution::self_adaptive_de;
+/// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
+/// # let initial_min_max = vec![(-5.0, 5.0); 10];
+/// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
+/// de.nth(10000);
+/// 
 impl<F, R> Iterator for Population<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
 {
-    type Item = f32;
+    /// A tuple of current best cost and number of cost function evaluations so far.
+    type Item = (f32, usize);
 
-    /// Returns the cost value of the current best
-    fn next(&mut self) -> Option<f32> {
+    /// Returns the cost value of the current best solution found.
+    fn next(&mut self) -> Option<Self::Item> {
         if 0 == self.pop_countdown {
             // if the whole pop has been evaluated, evolve it to update positions.
             // this also copies curr to best, if better.
@@ -209,6 +267,7 @@ impl<F, R> Iterator for Population<F, R>
 
         let cost = (self.settings.cost_function)(&curr.pos);
         curr.cost = Some(cost);
+        self.num_cost_evaluations += 1;
 
         // see if we have improved the global best
         if self.best_cost_cache.is_none() || cost < self.best_cost_cache.unwrap() {
@@ -216,7 +275,7 @@ impl<F, R> Iterator for Population<F, R>
             self.best_idx = Some(self.pop_countdown);
         }
 
-        self.best_cost_cache
+        Some((self.best_cost_cache.unwrap(), self.num_cost_evaluations))
     }
 }
 
@@ -226,7 +285,7 @@ pub fn self_adaptive_de<F>(min_max_pos: Vec<(f32, f32)>,
                            -> Population<F, rand::XorShiftRng>
     where F: Fn(&[f32]) -> f32
 {
-    Population::from_settings(Settings::default(min_max_pos, cost_function))
+    Population::new(Settings::default(min_max_pos, cost_function))
 }
 
 impl<F, R> Population<F, R>
@@ -234,7 +293,7 @@ impl<F, R> Population<F, R>
           R: rand::Rng
 {
     // Creates a new population based on the given settings.
-    pub fn from_settings(s: Settings<F, R>) -> Population<F, R> {
+    pub fn new(s: Settings<F, R>) -> Population<F, R> {
         assert!(s.min_max_pos.len() >= 1,
                 "need at least one element to optimize");
 
@@ -255,6 +314,7 @@ impl<F, R> Population<F, R>
             best: vec![dummy_individual; s.pop_size],
             best_idx: None,
             best_cost_cache: None,
+            num_cost_evaluations: 0,
             dim: dim,
             pop_countdown: s.pop_size,
             between_popsize: Range::new(0, s.pop_size),
@@ -371,6 +431,11 @@ impl<F, R> Population<F, R>
         } else {
             None
         }
+    }
+
+    /// Gets the total number of times the cost function has been evaluated.
+    pub fn num_cost_evaluations(&self) -> usize {
+        self.num_cost_evaluations
     }
 }
 
