@@ -123,12 +123,17 @@ pub struct Settings<F, R>
     pub cost_function: F,
 }
 
-impl<F, R> Settings<F, R>
-    where F: Fn(&[f32]) -> f32,
-          R: rand::Rng
+impl<F> Settings<F, rand::XorShiftRng>
+    where F: Fn(&[f32]) -> f32
 {
-    /// Creates default settings, but with customizable random number generator.
-    pub fn min_max_rng(min_max_pos: Vec<(f32, f32)>, cost_function: F, rng: R) -> Settings<F, R> {
+    /// Creates default settings for the differential evolution. It uses the default
+    /// parameters as defined in the paper "Self-Adapting Control Parameters in Differential
+    /// Evolution: A Comparative Study on Numerical Benchmark Problems", with a population
+    /// size of 100. It also uses This uses `rand::weak_rng()` for the fastest random number
+    /// generator available.
+    ///
+    /// For most problems this should be a fairly good parameter set. 
+    pub fn default(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Settings<F, rand::XorShiftRng> {
         // create settings for the algorithm
         Settings {
             min_max_pos: min_max_pos,
@@ -140,19 +145,10 @@ impl<F, R> Settings<F, R>
             f_change_probability: 0.1,
 
             pop_size: 100,
-            rng: rng,
+            rng: rand::weak_rng(),
 
             cost_function: cost_function,
         }
-    }
-}
-
-impl<F> Settings<F, rand::XorShiftRng>
-    where F: Fn(&[f32]) -> f32
-{
-    /// Creates default settings.
-    pub fn new(min_max_pos: Vec<(f32, f32)>, cost_function: F) -> Settings<F, rand::XorShiftRng> {
-        Settings::min_max_rng(min_max_pos, cost_function, rand::weak_rng())
     }
 }
 
@@ -230,7 +226,7 @@ pub fn self_adaptive_de<F>(min_max_pos: Vec<(f32, f32)>,
                            -> Population<F, rand::XorShiftRng>
     where F: Fn(&[f32]) -> f32
 {
-    Population::from_settings(Settings::new(min_max_pos, cost_function))
+    Population::from_settings(Settings::default(min_max_pos, cost_function))
 }
 
 impl<F, R> Population<F, R>
