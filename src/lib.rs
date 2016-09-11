@@ -120,7 +120,22 @@
 //! let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
 //! de.iter().take(100000).find(|&cost| cost < 0.1);
 //! ```
+//! 
+//! When you are finished with iterating, you can extract the best solution found so far with
+//! `de.best()`. This retrieves the minimum cost and the position vector that has lead to this
+//! cost:
 //!
+//! ```
+//! # use differential_evolution::self_adaptive_de;
+//! # fn sum_of_squares(pos: &[f32]) -> f32 { 0.0 }
+//! # let initial_min_max = vec![(-5.12, 5.12); 2];
+//! # let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
+//! # de.iter().nth(1000);
+//! let (cost, pos) = de.best().unwrap();
+//! println!("{} best cost", cost);
+//! println!("{:?} best position", pos);
+//! ```
+//! 
 //! # Similar Crates
 //!
 //! - [darwin-rs](https://github.com/willi-kappler/darwin-rs)
@@ -266,7 +281,7 @@ impl<F, R> Population<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
 {
-    // Creates a new population based on the given settings.
+    /// Creates a new population based on the given settings.
     pub fn new(s: Settings<F, R>) -> Population<F, R> {
         assert!(s.min_max_pos.len() >= 1,
                 "need at least one element to optimize");
