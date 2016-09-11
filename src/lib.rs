@@ -120,7 +120,7 @@
 //! let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
 //! de.iter().take(100000).find(|&cost| cost < 0.1);
 //! ```
-//! 
+//!
 //! When you are finished with iterating, you can extract the best solution found so far with
 //! `de.best()`. This retrieves the minimum cost and the position vector that has lead to this
 //! cost:
@@ -135,7 +135,7 @@
 //! println!("{} best cost", cost);
 //! println!("{:?} best position", pos);
 //! ```
-//! 
+//!
 //! # Similar Crates
 //!
 //! - [darwin-rs](https://github.com/willi-kappler/darwin-rs)
