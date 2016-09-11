@@ -64,7 +64,7 @@
 //! ### Tutorial: Rastrigin
 //!
 //! The population supports an `Iterator` for evaluating. Each call
-//! of `next()` evaluates the cost function and returns the
+//! of `eval()` evaluates the cost function and returns the
 //! fitness value of the current global best. This way it is possible
 //! to use all the iterator's features for optimizig. Here are a few
 //! examples.
@@ -139,7 +139,7 @@
 //! # Similar Crates
 //!
 //! - [darwin-rs](https://github.com/willi-kappler/darwin-rs)
-//! - [`RsGenetic`](https://github.com/m-decoster/RsGenetic)
+//! - [Rs Genetic](https://github.com/m-decoster/RsGenetic)
 //!
 
 extern crate rand;
@@ -483,7 +483,7 @@ impl<'a, F, R> Iterator for PopIter<'a, F, R>
 {
     type Item = f32;
 
-    /// Simply forwards to the population's `next()`.
+    /// Simply forwards to the population's `eval()`.
     fn next(&mut self) -> Option<Self::Item> {
         self.pop.eval()
     }
