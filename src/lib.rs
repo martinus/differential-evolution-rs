@@ -139,7 +139,7 @@
 //! # Similar Crates
 //!
 //! - [darwin-rs](https://github.com/willi-kappler/darwin-rs)
-//! - [RsGenetic](https://github.com/m-decoster/RsGenetic)
+//! - [`RsGenetic`](https://github.com/m-decoster/RsGenetic)
 //!
 
 extern crate rand;
@@ -433,7 +433,7 @@ impl<F, R> Population<F, R>
     /// Performs a single cost evaluation, and updates best positions and
     /// evolves the population if the whole population has been evaluated.
     /// Returns the cost value of the current best solution found.
-    pub fn next(&mut self) -> Option<f32> {
+    pub fn eval(&mut self) -> Option<f32> {
         if 0 == self.pop_countdown {
             // if the whole pop has been evaluated, evolve it to update positions.
             // this also copies curr to best, if better.
@@ -485,7 +485,7 @@ impl<'a, F, R> Iterator for PopIter<'a, F, R>
 
     /// Simply forwards to the population's `next()`.
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop.next()
+        self.pop.eval()
     }
 }
 
