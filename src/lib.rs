@@ -35,7 +35,7 @@
 //! tries to iteratively improve candidate solutions with regards to
 //! a user-defined cost function.
 //!
-//! ### Sum of Squares
+//! ### Quick Start: Sum of Squares
 //! This example finds the minimum of a simple 5-dimensional function.
 //!
 //! ```
@@ -59,6 +59,66 @@
 //!     println!("cost: {}", cost);
 //!     println!("pos: {:?}", pos);
 //! }
+//! ```
+//!
+//! ### Tutorial: Rastrigin
+//!
+//! The population supports an `Iterator` for evaluating. Each call
+//! of `next()` evaluates the cost function and returns the
+//! fitness value of the current global best. This way it is possible
+//! to use all the iterator's features for optimizig. Here are a few
+//! examples.
+//!
+//! Let's say we have the [Rastrigin](https://en.wikipedia.org/wiki/Rastrigin_function)
+//! cost function:
+//!
+//! ```
+//! use std::f32::consts::PI;
+//!
+//! fn rastrigin(pos: &[f32]) -> f32 {
+//!     pos.iter().fold(0.0, |sum, x|
+//!         sum + x * x - 10.0 * (2.0 * PI * x).cos() + 10.0)
+//! }
+//! ```
+//!
+//! We'd like to search for the minimum in the range -5.12 to 5.12, for
+//! 30 dimensions:
+//!
+//! ```
+//! let initial_min_max = vec![(-5.12, 5.12); 30];
+//! ```
+//!
+//! We can create a self adaptive DE, and search until the cost
+//! reaches a given minimum:
+//!
+//! ```
+//! # use differential_evolution::self_adaptive_de;
+//! # fn rastrigin(pos: &[f32]) -> f32 { 0.0 }
+//! # let initial_min_max = vec![(-5.12, 5.12); 2];
+//! let mut de = self_adaptive_de(initial_min_max, rastrigin);
+//! de.iter().find(|&cost| cost < 0.1);
+//! ```
+//!
+//! This is a bit dangerous though, because the optimizer might never reach that minimum.
+//! It is safer to just let it run for a given number of evaluations:
+//!
+//! ```
+//! # use differential_evolution::self_adaptive_de;
+//! # fn rastrigin(pos: &[f32]) -> f32 { 0.0 }
+//! # let initial_min_max = vec![(-5.0, 5.0); 2];
+//! let mut de = self_adaptive_de(initial_min_max, rastrigin);
+//! de.iter().nth(10000);
+//! ```
+//!
+//! If is possible to do some smart combinations: run until cost is below a threshold, or until
+//! the maximum number of iterations have been reached:
+//!
+//! ```
+//! # use differential_evolution::self_adaptive_de;
+//! # fn sum_of_squares(pos: &[f32]) -> f32 { 0.0 }
+//! # let initial_min_max = vec![(-5.12, 5.12); 2];
+//! let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
+//! de.iter().take(100000).find(|&cost| cost < 0.1);
 //! ```
 //!
 //! # Similar Crates
@@ -153,6 +213,7 @@ impl<F> Settings<F, rand::XorShiftRng>
     }
 }
 
+/// Internally used struct for an inivididual.
 #[derive(Clone)]
 struct Individual {
     pos: Vec<f32>,
@@ -169,7 +230,6 @@ pub struct Population<F, R>
     where F: Fn(&[f32]) -> f32,
           R: rand::Rng
 {
-    // TODO use a single vector for curr and best and controlparameters?
     curr: Vec<Individual>,
     best: Vec<Individual>,
 
@@ -191,60 +251,9 @@ pub struct Population<F, R>
     pop_countdown: usize,
 }
 
-/// The population inplements the `Iterator` trait, and for each call
-/// of `next()` the cost function is evaluated once and returns the
-/// fitness value of the current global best. This way it is possible
-/// to use all the iterator's features for optimizig. Here are a few
-/// examples.
-///
-/// Let's say we have a simple cost function that calculates sum
-/// of squares:
-///
-/// ```
-/// fn sum_of_squares(pos: &[f32]) -> f32 {
-///     pos.iter().fold(0.0, |sum, x| sum + x*x)
-/// }
-/// ```
-///
-/// We'd like to search for the minimum in the range -5 to 5, for
-/// 10 dimensions:
-///
-/// ```
-/// let initial_min_max = vec![(-5.0, 5.0); 10];
-/// ```
-/// /
-/// We can create a self adaptive DE, and search until the cost
-/// reaches a given minimum:
-///
-/// ```
-/// # use differential_evolution::self_adaptive_de;
-/// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
-/// # let initial_min_max = vec![(-5.0, 5.0); 10];
-/// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
-/// de.iter().find(|&cost| cost < 0.1);
-/// ```
-///
-/// This is a bit dangerous though, because the optimizer might never reach that minimum.
-/// It is safer to just let it run for a given number of evaluations:
-///
-/// ```
-/// # use differential_evolution::self_adaptive_de;
-/// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
-/// # let initial_min_max = vec![(-5.0, 5.0); 10];
-/// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
-/// de.iter().nth(10000);
-/// ```
-///
-/// If is possible to do some smart combinations: run until cost is below a threshold, or until
-/// the maximum number of iterations have been reached:
-///
-/// ```
-/// # use differential_evolution::self_adaptive_de;
-/// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
-/// # let initial_min_max = vec![(-5.0, 5.0); 10];
-/// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
-/// de.iter().take(100000).find(|&cost| cost < 0.1);
-/// ```
+
+/// Convenience function to create a fully configured self adaptive
+/// differential evolution population.
 pub fn self_adaptive_de<F>(min_max_pos: Vec<(f32, f32)>,
                            cost_function: F)
                            -> Population<F, rand::XorShiftRng>
@@ -305,6 +314,7 @@ impl<F, R> Population<F, R>
         pop
     }
 
+    /// Loops through each individual and updates its personal best.
     fn update_best(&mut self) {
         for i in 0..self.curr.len() {
             let curr = &mut self.curr[i];
@@ -378,6 +388,8 @@ impl<F, R> Population<F, R>
         }
     }
 
+
+    /// Gets a tuple of the best cost and best position found so far.
     pub fn best(&self) -> Option<(f32, &[f32])> {
         if let Some(bi) = self.best_idx {
             let curr = &self.curr[bi];
@@ -403,6 +415,8 @@ impl<F, R> Population<F, R>
         self.num_cost_evaluations
     }
 
+    /// Performs a single cost evaluation, and updates best positions and
+    /// evolves the population if the whole population has been evaluated.
     /// Returns the cost value of the current best solution found.
     pub fn next(&mut self) -> Option<f32> {
         if 0 == self.pop_countdown {
@@ -431,11 +445,16 @@ impl<F, R> Population<F, R>
     }
 
 
+    /// Gets an iterator for this population. Each call to `next()`
+    /// performs one cost evaluation.
     pub fn iter(&mut self) -> PopIter<F, R> {
         PopIter { pop: self }
     }
 }
 
+
+/// Iterator for the differential evolution, to perform a single cost
+/// evaluation every time `move()` is called.
 pub struct PopIter<'a, F, R>
     where F: 'a + Fn(&[f32]) -> f32,
           R: 'a + rand::Rng
@@ -449,6 +468,7 @@ impl<'a, F, R> Iterator for PopIter<'a, F, R>
 {
     type Item = f32;
 
+    /// Simply forwards to the population's `next()`.
     fn next(&mut self) -> Option<Self::Item> {
         self.pop.next()
     }
