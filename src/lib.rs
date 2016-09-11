@@ -64,7 +64,7 @@
 //! ### Tutorial: Rastrigin
 //!
 //! The population supports an `Iterator` for evaluating. Each call
-//! of `eval()` evaluates the cost function and returns the
+//! of `next()` evaluates the cost function and returns the
 //! fitness value of the current global best. This way it is possible
 //! to use all the iterator's features for optimizig. Here are a few
 //! examples.
