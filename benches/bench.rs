@@ -24,8 +24,17 @@ mod tests {
                                                  cost_fn: F,
                                                  rng: R)
                                                  -> Population<F, R> {
-        let s = Settings::min_max_rng(vec![(-100.0, 100.0); dim], cost_fn, rng);
-        Population::from_settings(s)
+        let s = Settings {
+            min_max_pos: vec![(-100.0, 100.0); dim],
+            cr_min_max: (0.0, 1.0),
+            cr_change_probability: 0.1,
+            f_min_max: (0.1, 1.0),
+            f_change_probability: 0.1,
+            pop_size: 100,
+            rng: rng,
+            cost_function: cost_fn,
+        };
+        Population::new(s)
     }
 
     #[bench]
