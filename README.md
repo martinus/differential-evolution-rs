@@ -25,7 +25,6 @@ Differential Evolution is a global optimization algorithm that tries to iterativ
 This example finds the minimum of a simple 5-dimensional function.
 
 ```rust
-// Simple example how to use the API.
 extern crate differential_evolution;
 
 use differential_evolution::self_adaptive_de;
@@ -39,8 +38,8 @@ fn main() {
     });
 
     // perform 10000 cost evaluations
-    de.nth(10000);
-    
+    de.iter().nth(10000);
+
     // show the result
     let (cost, pos) = de.best().unwrap();
     println!("cost: {}", cost);
