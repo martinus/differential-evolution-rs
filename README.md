@@ -2,6 +2,7 @@
 
 Simple and powerful global optimization using a [Self-Adapting Differential Evolution](https://www.researchgate.net/publication/3418914_Self-Adapting_Control_Parameters_in_Differential_Evolution_A_Comparative_Study_on_Numerical_Benchmark_Problems) for Rust. See Wikipedia's article on [Differential Evolution](https://en.wikipedia.org/wiki/Differential_evolution) for more information.
 
+Documentation: https://docs.rs/differential-evolution/*/differential_evolution/
 ## Usage
 
 Add this to your `Cargo.toml`:
