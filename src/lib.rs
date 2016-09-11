@@ -52,7 +52,7 @@
 //!     });
 //!
 //!     // perform 10000 cost evaluations
-//!     de.nth(10000);
+//!     de.iter().nth(10000);
 //!
 //!     // show the result
 //!     let (cost, pos) = de.best().unwrap();
@@ -205,25 +205,25 @@ pub struct Population<F, R>
 ///     pos.iter().fold(0.0, |sum, x| sum + x*x)
 /// }
 /// ```
-/// 
+///
 /// We'd like to search for the minimum in the range -5 to 5, for
 /// 10 dimensions:
-/// 
+///
 /// ```
 /// let initial_min_max = vec![(-5.0, 5.0); 10];
 /// ```
-////
+/// /
 /// We can create a self adaptive DE, and search until the cost
-/// reaches a given minimum: 
-/// 
+/// reaches a given minimum:
+///
 /// ```
 /// # use differential_evolution::self_adaptive_de;
 /// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
 /// # let initial_min_max = vec![(-5.0, 5.0); 10];
 /// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
-/// de.find(|&cost| cost < 0.1);    
+/// de.iter().find(|&cost| cost < 0.1);
 /// ```
-/// 
+///
 /// This is a bit dangerous though, because the optimizer might never reach that minimum.
 /// It is safer to just let it run for a given number of evaluations:
 ///
@@ -232,54 +232,19 @@ pub struct Population<F, R>
 /// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
 /// # let initial_min_max = vec![(-5.0, 5.0); 10];
 /// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
-/// de.nth(10000);
+/// de.iter().nth(10000);
 /// ```
-/// 
-/// Of course it is possible to combine both: run until cost is below a threshold, or until
+///
+/// If is possible to do some smart combinations: run until cost is below a threshold, or until
 /// the maximum number of iterations have been reached:
 ///
+/// ```
 /// # use differential_evolution::self_adaptive_de;
 /// # fn sum_of_squares(pos: &[f32]) -> f32 { pos.iter().fold(0.0, |sum, x| sum + x*x) }
 /// # let initial_min_max = vec![(-5.0, 5.0); 10];
 /// let mut de = self_adaptive_de(initial_min_max, sum_of_squares);
-/// de.nth(10000);
-/// 
-impl<F, R> Iterator for Population<F, R>
-    where F: Fn(&[f32]) -> f32,
-          R: rand::Rng
-{
-    /// A tuple of current best cost and number of cost function evaluations so far.
-    type Item = (f32, usize);
-
-    /// Returns the cost value of the current best solution found.
-    fn next(&mut self) -> Option<Self::Item> {
-        if 0 == self.pop_countdown {
-            // if the whole pop has been evaluated, evolve it to update positions.
-            // this also copies curr to best, if better.
-            self.update_best();
-            self.update_positions();
-            self.pop_countdown = self.curr.len();
-        }
-
-        // perform a single fitness evaluation
-        self.pop_countdown -= 1;
-        let curr = &mut self.curr[self.pop_countdown];
-
-        let cost = (self.settings.cost_function)(&curr.pos);
-        curr.cost = Some(cost);
-        self.num_cost_evaluations += 1;
-
-        // see if we have improved the global best
-        if self.best_cost_cache.is_none() || cost < self.best_cost_cache.unwrap() {
-            self.best_cost_cache = Some(cost);
-            self.best_idx = Some(self.pop_countdown);
-        }
-
-        Some((self.best_cost_cache.unwrap(), self.num_cost_evaluations))
-    }
-}
-
-
+/// de.iter().take(100000).find(|&cost| cost < 0.1);
+/// ```
 pub fn self_adaptive_de<F>(min_max_pos: Vec<(f32, f32)>,
                            cost_function: F)
                            -> Population<F, rand::XorShiftRng>
@@ -436,6 +401,56 @@ impl<F, R> Population<F, R>
     /// Gets the total number of times the cost function has been evaluated.
     pub fn num_cost_evaluations(&self) -> usize {
         self.num_cost_evaluations
+    }
+
+    /// Returns the cost value of the current best solution found.
+    pub fn next(&mut self) -> Option<f32> {
+        if 0 == self.pop_countdown {
+            // if the whole pop has been evaluated, evolve it to update positions.
+            // this also copies curr to best, if better.
+            self.update_best();
+            self.update_positions();
+            self.pop_countdown = self.curr.len();
+        }
+
+        // perform a single fitness evaluation
+        self.pop_countdown -= 1;
+        let curr = &mut self.curr[self.pop_countdown];
+
+        let cost = (self.settings.cost_function)(&curr.pos);
+        curr.cost = Some(cost);
+        self.num_cost_evaluations += 1;
+
+        // see if we have improved the global best
+        if self.best_cost_cache.is_none() || cost < self.best_cost_cache.unwrap() {
+            self.best_cost_cache = Some(cost);
+            self.best_idx = Some(self.pop_countdown);
+        }
+
+        self.best_cost_cache
+    }
+
+
+    pub fn iter(&mut self) -> PopIter<F, R> {
+        PopIter { pop: self }
+    }
+}
+
+pub struct PopIter<'a, F, R>
+    where F: 'a + Fn(&[f32]) -> f32,
+          R: 'a + rand::Rng
+{
+    pop: &'a mut Population<F, R>,
+}
+
+impl<'a, F, R> Iterator for PopIter<'a, F, R>
+    where F: 'a + Fn(&[f32]) -> f32,
+          R: 'a + rand::Rng
+{
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop.next()
     }
 }
 

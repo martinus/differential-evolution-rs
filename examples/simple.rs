@@ -19,7 +19,7 @@ fn main() {
     });
 
     // perform 10000 cost evaluations
-    de.nth(10000);
+    de.iter().nth(10000);
     
     // show the result
     let (cost, pos) = de.best().unwrap();

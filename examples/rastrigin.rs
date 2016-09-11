@@ -28,12 +28,12 @@ fn main() {
     // initial search space for each dimension
     let initial_min_max = vec![(-5.12, 5.12); dim];
 
-    // perform optimization until best cost is below a threshold
+    // initialize differential evolution
     let mut de = self_adaptive_de(initial_min_max, rastrigin);
-    for (i, item) in de.iter().enumerate() {
-        println!("{:?} {:?}", i, item);
-    }
-    //de.find(|&(cost, iters)| cost < 0.1 || iters >= 100000);
+
+    // perform optimization for a maximum of 100000 cost evaluations,
+    // or until best cost is below 0.1.
+    de.iter().take(100000).find(|&cost| cost < 0.1);
 
     // see what we've found
     println!("{} evaluations done", de.num_cost_evaluations());
