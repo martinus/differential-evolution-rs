@@ -344,7 +344,16 @@ impl<F, R, C> Population<F, R, C>
 
             // we use <= here, so that the individual moves even if the cost
             // stays the same.
-            if best.cost.is_none() || curr.cost.unwrap() <= best.cost.unwrap() {
+            let mut is_swapping = best.cost.is_none();
+            if !is_swapping {
+                if let Some(ref c) = curr.cost {
+                    if let Some(ref b) = best.cost {
+                        is_swapping = c <= b;
+                    }
+                }
+            }
+
+            if is_swapping {
                 // replace individual's best. swap is *much* faster than clone.
                 std::mem::swap(curr, best);
             }
@@ -412,21 +421,21 @@ impl<F, R, C> Population<F, R, C>
 
 
     /// Gets a tuple of the best cost and best position found so far.
-    pub fn best(&self) -> Option<(C, &[f32])> {
+    pub fn best(&self) -> Option<(&C, &[f32])> {
         if let Some(bi) = self.best_idx {
             let curr = &self.curr[bi];
             let best = &self.best[bi];
 
             if curr.cost.is_none() {
-                return Some((best.cost.unwrap(), &best.pos));
+                return Some((best.cost.as_ref().unwrap(), &best.pos));
             }
             if best.cost.is_none() {
-                return Some((curr.cost.unwrap(), &curr.pos));
+                return Some((curr.cost.as_ref().unwrap(), &curr.pos));
             }
-            if curr.cost.unwrap() < best.cost.unwrap() {
-                return Some((curr.cost.unwrap(), &curr.pos));
+            if curr.cost.as_ref().unwrap() < best.cost.as_ref().unwrap() {
+                return Some((curr.cost.as_ref().unwrap(), &curr.pos));
             }
-            return Some((best.cost.unwrap(), &best.pos));
+            return Some((best.cost.as_ref().unwrap(), &best.pos));
         } else {
             None
         }
@@ -440,7 +449,7 @@ impl<F, R, C> Population<F, R, C>
     /// Performs a single cost evaluation, and updates best positions and
     /// evolves the population if the whole population has been evaluated.
     /// Returns the cost value of the current best solution found.
-    pub fn eval(&mut self) -> Option<C> {
+    pub fn eval(&mut self) {
         if 0 == self.pop_countdown {
             // if the whole pop has been evaluated, evolve it to update positions.
             // this also copies curr to best, if better.
@@ -458,12 +467,11 @@ impl<F, R, C> Population<F, R, C>
         self.num_cost_evaluations += 1;
 
         // see if we have improved the global best
-        if self.best_cost_cache.is_none() || cost < self.best_cost_cache.unwrap() {
-            self.best_cost_cache = Some(cost);
+        if self.best_cost_cache.is_none() ||
+           curr.cost.as_ref().unwrap() < self.best_cost_cache.as_ref().unwrap() {
+            self.best_cost_cache = curr.cost.clone();
             self.best_idx = Some(self.pop_countdown);
         }
-
-        self.best_cost_cache
     }
 
 
@@ -494,7 +502,8 @@ impl<'a, F, R, C> Iterator for PopIter<'a, F, R, C>
 
     /// Simply forwards to the population's `eval()`.
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop.eval()
+        self.pop.eval();
+        self.pop.best_cost_cache.clone()
     }
 }
 
