@@ -148,9 +148,10 @@ use rand::distributions::{IndependentSample, Range};
 
 /// Holds all settings for the self adaptive differential evolution
 /// algorithm.
-pub struct Settings<F, R>
-    where F: Fn(&[f32]) -> f32,
-          R: rand::Rng
+pub struct Settings<F, R, C>
+    where F: Fn(&[f32]) -> C,
+          R: rand::Rng,
+          C: PartialEq + Clone
 {
     /// The population is initialized with uniform random
     /// for each dimension between the tuple's size.
@@ -192,14 +193,15 @@ pub struct Settings<F, R>
     pub rng: R,
 
     /// The cost function to minimize. This takes an `&[f32]` and returns
-    /// the calculated cost for this position as `f32`. This should be
+    /// the calculated cost for this position as `C`. This should be
     /// fast to evaluate, and always produce the same result for the same
     /// input.
     pub cost_function: F,
 }
 
-impl<F> Settings<F, rand::XorShiftRng>
-    where F: Fn(&[f32]) -> f32
+impl<F, C> Settings<F, rand::XorShiftRng, C>
+    where F: Fn(&[f32]) -> C,
+          C: PartialOrd + Clone
 {
     /// Creates default settings for the differential evolution. It uses the default
     /// parameters as defined in the paper "Self-Adapting Control Parameters in Differential
@@ -210,7 +212,7 @@ impl<F> Settings<F, rand::XorShiftRng>
     /// For most problems this should be a fairly good parameter set.
     pub fn default(min_max_pos: Vec<(f32, f32)>,
                    cost_function: F)
-                   -> Settings<F, rand::XorShiftRng> {
+                   -> Settings<F, rand::XorShiftRng, C> {
         Settings {
             min_max_pos: min_max_pos,
 
@@ -230,10 +232,12 @@ impl<F> Settings<F, rand::XorShiftRng>
 
 /// Internally used struct for an inivididual.
 #[derive(Clone)]
-struct Individual {
+struct Individual<C>
+    where C: PartialOrd + Clone
+{
     pos: Vec<f32>,
     // the lower, the better.
-    cost: Option<f32>,
+    cost: Option<C>,
 
     // control parameters
     cr: f32,
@@ -241,20 +245,21 @@ struct Individual {
 }
 
 /// Holds the population for the differential evolution based on the given settings.
-pub struct Population<F, R>
-    where F: Fn(&[f32]) -> f32,
-          R: rand::Rng
+pub struct Population<F, R, C>
+    where F: Fn(&[f32]) -> C,
+          R: rand::Rng,
+          C: PartialOrd + Clone
 {
-    curr: Vec<Individual>,
-    best: Vec<Individual>,
+    curr: Vec<Individual<C>>,
+    best: Vec<Individual<C>>,
 
-    settings: Settings<F, R>,
+    settings: Settings<F, R, C>,
 
     // index of global best individual. Might be in best or in curr.
     best_idx: Option<usize>,
 
     // cost value of the global best individual, for quick access
-    best_cost_cache: Option<f32>,
+    best_cost_cache: Option<C>,
     num_cost_evaluations: usize,
 
     dim: usize,
@@ -269,20 +274,22 @@ pub struct Population<F, R>
 
 /// Convenience function to create a fully configured self adaptive
 /// differential evolution population.
-pub fn self_adaptive_de<F>(min_max_pos: Vec<(f32, f32)>,
-                           cost_function: F)
-                           -> Population<F, rand::XorShiftRng>
-    where F: Fn(&[f32]) -> f32
+pub fn self_adaptive_de<F, C>(min_max_pos: Vec<(f32, f32)>,
+                              cost_function: F)
+                              -> Population<F, rand::XorShiftRng, C>
+    where F: Fn(&[f32]) -> C,
+          C: PartialOrd + Clone
 {
     Population::new(Settings::default(min_max_pos, cost_function))
 }
 
-impl<F, R> Population<F, R>
-    where F: Fn(&[f32]) -> f32,
-          R: rand::Rng
+impl<F, R, C> Population<F, R, C>
+    where F: Fn(&[f32]) -> C,
+          R: rand::Rng,
+          C: PartialOrd + Clone
 {
     /// Creates a new population based on the given settings.
-    pub fn new(s: Settings<F, R>) -> Population<F, R> {
+    pub fn new(s: Settings<F, R, C>) -> Population<F, R, C> {
         assert!(s.min_max_pos.len() >= 1,
                 "need at least one element to optimize");
 
@@ -337,7 +344,16 @@ impl<F, R> Population<F, R>
 
             // we use <= here, so that the individual moves even if the cost
             // stays the same.
-            if best.cost.is_none() || curr.cost.unwrap() <= best.cost.unwrap() {
+            let mut is_swapping = best.cost.is_none();
+            if !is_swapping {
+                if let Some(ref c) = curr.cost {
+                    if let Some(ref b) = best.cost {
+                        is_swapping = c <= b;
+                    }
+                }
+            }
+
+            if is_swapping {
                 // replace individual's best. swap is *much* faster than clone.
                 std::mem::swap(curr, best);
             }
@@ -405,21 +421,21 @@ impl<F, R> Population<F, R>
 
 
     /// Gets a tuple of the best cost and best position found so far.
-    pub fn best(&self) -> Option<(f32, &[f32])> {
+    pub fn best(&self) -> Option<(&C, &[f32])> {
         if let Some(bi) = self.best_idx {
             let curr = &self.curr[bi];
             let best = &self.best[bi];
 
             if curr.cost.is_none() {
-                return Some((best.cost.unwrap(), &best.pos));
+                return Some((best.cost.as_ref().unwrap(), &best.pos));
             }
             if best.cost.is_none() {
-                return Some((curr.cost.unwrap(), &curr.pos));
+                return Some((curr.cost.as_ref().unwrap(), &curr.pos));
             }
-            if curr.cost.unwrap() < best.cost.unwrap() {
-                return Some((curr.cost.unwrap(), &curr.pos));
+            if curr.cost.as_ref().unwrap() < best.cost.as_ref().unwrap() {
+                return Some((curr.cost.as_ref().unwrap(), &curr.pos));
             }
-            return Some((best.cost.unwrap(), &best.pos));
+            return Some((best.cost.as_ref().unwrap(), &best.pos));
         } else {
             None
         }
@@ -433,7 +449,7 @@ impl<F, R> Population<F, R>
     /// Performs a single cost evaluation, and updates best positions and
     /// evolves the population if the whole population has been evaluated.
     /// Returns the cost value of the current best solution found.
-    pub fn eval(&mut self) -> Option<f32> {
+    pub fn eval(&mut self) {
         if 0 == self.pop_countdown {
             // if the whole pop has been evaluated, evolve it to update positions.
             // this also copies curr to best, if better.
@@ -451,18 +467,17 @@ impl<F, R> Population<F, R>
         self.num_cost_evaluations += 1;
 
         // see if we have improved the global best
-        if self.best_cost_cache.is_none() || cost < self.best_cost_cache.unwrap() {
-            self.best_cost_cache = Some(cost);
+        if self.best_cost_cache.is_none() ||
+           curr.cost.as_ref().unwrap() < self.best_cost_cache.as_ref().unwrap() {
+            self.best_cost_cache = curr.cost.clone();
             self.best_idx = Some(self.pop_countdown);
         }
-
-        self.best_cost_cache
     }
 
 
     /// Gets an iterator for this population. Each call to `next()`
     /// performs one cost evaluation.
-    pub fn iter(&mut self) -> PopIter<F, R> {
+    pub fn iter(&mut self) -> PopIter<F, R, C> {
         PopIter { pop: self }
     }
 }
@@ -470,22 +485,25 @@ impl<F, R> Population<F, R>
 
 /// Iterator for the differential evolution, to perform a single cost
 /// evaluation every time `move()` is called.
-pub struct PopIter<'a, F, R>
-    where F: 'a + Fn(&[f32]) -> f32,
-          R: 'a + rand::Rng
+pub struct PopIter<'a, F, R, C>
+    where F: 'a + Fn(&[f32]) -> C,
+          R: 'a + rand::Rng,
+          C: 'a + PartialOrd + Clone
 {
-    pop: &'a mut Population<F, R>,
+    pop: &'a mut Population<F, R, C>,
 }
 
-impl<'a, F, R> Iterator for PopIter<'a, F, R>
-    where F: 'a + Fn(&[f32]) -> f32,
-          R: 'a + rand::Rng
+impl<'a, F, R, C> Iterator for PopIter<'a, F, R, C>
+    where F: 'a + Fn(&[f32]) -> C,
+          R: 'a + rand::Rng,
+          C: PartialOrd + Clone
 {
-    type Item = f32;
+    type Item = C;
 
     /// Simply forwards to the population's `eval()`.
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop.eval()
+        self.pop.eval();
+        self.pop.best_cost_cache.clone()
     }
 }
 
