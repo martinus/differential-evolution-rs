@@ -20,10 +20,10 @@ mod tests {
     use differential_evolution::{Population, Settings};
 
 
-    fn setup<F: Fn(&[f32]) -> f32, R: Rng>(dim: usize,
+    fn setup<F: Fn(&[f32]) -> C, R: Rng, C: PartialOrd + Clone>(dim: usize,
                                                  cost_fn: F,
                                                  rng: R)
-                                                 -> Population<F, R> {
+                                                 -> Population<F, R, C> {
         let s = Settings {
             min_max_pos: vec![(-100.0, 100.0); dim],
             cr_min_max: (0.0, 1.0),

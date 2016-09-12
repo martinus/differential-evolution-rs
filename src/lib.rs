@@ -151,7 +151,7 @@ use rand::distributions::{IndependentSample, Range};
 pub struct Settings<F, R, C>
     where F: Fn(&[f32]) -> C,
           R: rand::Rng,
-          C: PartialEq + Clone
+          C: PartialOrd + Clone
 {
     /// The population is initialized with uniform random
     /// for each dimension between the tuple's size.
